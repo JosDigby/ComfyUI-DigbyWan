@@ -11,9 +11,9 @@ class DigbyLoopOpen:
         inputs = {
             "required": {
                 "max_iterations": ("INT", {"default": 5, "min": 1, "max": 100}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
-                "seed": ("INT", {"default":0, "forceInput": True}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -23,8 +23,8 @@ class DigbyLoopOpen:
         }
         return inputs
 
-    RETURN_TYPES = tuple(["FLOW_CONTROL", "INT", "INT", ])
-    RETURN_NAMES = tuple(["link_to_loop_close", "max_iterations", "iteration_count", ])
+    RETURN_TYPES = tuple(["FLOW_CONTROL", "INT", ])
+    RETURN_NAMES = tuple(["link_to_loop_close", "iteration_count", ])
     FUNCTION = "loop_open"
     CATEGORY = "DigbyWan"
 
@@ -43,7 +43,6 @@ class DigbyLoopClose:
         inputs = {
             "required": {
                 "link_from_loop_open": ("FLOW_CONTROL", {"rawLink": True}),
-                "max_iterations": ("INT", {"forceInput": True}),
                 "end_of_loop": ("STRING", {"forceInput":True}),
             },
             "hidden": {
@@ -98,13 +97,12 @@ class DigbyLoopClose:
                 contained[child_id] = True
                 self.collect_contained(child_id, upstream, contained)
 
-    def loop_close(self, link_from_loop_open, max_iterations, end_of_loop,
+    def loop_close(self, link_from_loop_open, end_of_loop,
                  dynprompt=None, unique_id=None, iteration_count=0, ):
         
         loop_open_node = dynprompt.get_node(link_from_loop_open[0])
         assert loop_open_node["class_type"] == "DigbyLoopOpen", "Link to a Loop Open Node"
-        max_it = loop_open_node["inputs"]["max_iterations"]
-        assert max_it == max_iterations, f"How do max_it not have there right values {max_it} vs {max_iterations}"
+        max_iterations = loop_open_node["inputs"]["max_iterations"]
 
         print(f"Iteration {iteration_count} of {max_iterations}")
         
