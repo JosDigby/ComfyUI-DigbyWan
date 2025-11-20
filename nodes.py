@@ -14,7 +14,7 @@ from comfy_api.latest import ComfyExtension, io
 
 EXPERIMENTAL = True
 
-class WAN22MiddleFrameToVideo:
+class Wan22MiddleFrameToVideo:
     @classmethod
     def INPUT_TYPES(s):
         return {
