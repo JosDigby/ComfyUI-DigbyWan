@@ -1,13 +1,13 @@
 from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmoother, ImageBatchLoopExtract
-from .loop_nodes import SingleImageLoopOpen, SingleImageLoopClose
+from .loop_nodes import DigbyLoopOpen, DigbyLoopClose
 
 NODE_CLASS_MAPPINGS = {
     "WanMiddleFrameToVideo":Wan22MiddleFrameToVideo,
 #    "WanSmoothVideoTransition":WanSmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
     "WanVACEVideoSmoother":WanVACEVideoSmoother,
     "ImageBatchLoopExtract":ImageBatchLoopExtract,
-    "SingleImageLoopOpen-DigbyWan": SingleImageLoopOpen,
-    "SingleImageLoopClose-DigbyWan": SingleImageLoopClose,
+    "DigbyLoopOpen": DigbyLoopOpen,
+    "DigbyLoopClose": DigbyLoopClose,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -16,6 +16,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanVACEVideoSmoother": "Wan VACE 2.1 Video Smoother",
     "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
     
-    "SingleImageLoopOpen-DigbyWan": "SingleImageLoopOpen (from WainWong)",
-    "SingleImageLoopClose-DigbyWan": "SingleImageLoopClose (from WainWong)",
+    "DigbyLoopOpen": "Loop Open",
+    "DigbyLoopClose": "Loop Close",
+
+
 }

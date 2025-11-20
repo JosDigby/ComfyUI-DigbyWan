@@ -1,9 +1,8 @@
 from comfy_execution.graph_utils import GraphBuilder, is_link
-import torch
 from nodes import NODE_CLASS_MAPPINGS as ALL_NODE_CLASS_MAPPINGS
 
 # @VariantSupport()
-class SingleImageLoopOpen:
+class DigbyLoopOpen:
     def __init__(self):
         pass
 
@@ -11,37 +10,31 @@ class SingleImageLoopOpen:
     def INPUT_TYPES(cls):
         inputs = {
             "required": {
-                "image": ("IMAGE",),
                 "max_iterations": ("INT", {"default": 5, "min": 1, "max": 100}),
+            },
+            "optional": {
+                "seed": ("INT", {"default":0, "forceInput": True}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
                 "iteration_count": ("INT", {"default": 0}),
-                "previous_image": ("IMAGE",),
+                "heartbeat_string": ("STRING", )
             }
         }
         return inputs
 
-    RETURN_TYPES = tuple(["FLOW_CONTROL", "IMAGE", "INT", "INT"])
-    RETURN_NAMES = tuple(["FLOW_CONTROL", "current_image", "max_iterations", "iteration_count"])
+    RETURN_TYPES = tuple(["FLOW_CONTROL", "INT", "INT", ])
+    RETURN_NAMES = tuple(["link_to_loop_close", "max_iterations", "iteration_count", ])
     FUNCTION = "loop_open"
     CATEGORY = "DigbyWan"
 
-    def loop_open(self, image, max_iterations, unique_id=None, 
-                 iteration_count=0, previous_image=None, ):
-        print(f"SingleImageLoopOpen Processing iteration {iteration_count}")
-        
-        # 确保维度正确
-        if len(image.shape) == 3:
-            image = image.unsqueeze(0)
-            
-        # 使用上一次循环的结果（如果有）
-        current_image = previous_image if previous_image is not None and iteration_count > 0 else image
-            
-        return tuple(["stub", current_image, max_iterations, iteration_count])
+    def loop_open(self, max_iterations, seed=0, unique_id=None, 
+                 iteration_count=0, heartbeat_string="DigbyLoopOpen"):
+                                
+        return tuple(["stub", max_iterations, iteration_count,  ])
 
 # @VariantSupport()
-class SingleImageLoopClose:
+class DigbyLoopClose:
     def __init__(self):
         pass
 
@@ -49,9 +42,9 @@ class SingleImageLoopClose:
     def INPUT_TYPES(cls):
         inputs = {
             "required": {
-                "flow_control": ("FLOW_CONTROL", {"rawLink": True}),
-                "current_image": ("IMAGE",),
+                "link_from_loop_open": ("FLOW_CONTROL", {"rawLink": True}),
                 "max_iterations": ("INT", {"forceInput": True}),
+                "end_of_loop": ("STRING", {"forceInput":True}),
             },
             "hidden": {
                 "dynprompt": "DYNPROMPT",
@@ -61,8 +54,8 @@ class SingleImageLoopClose:
         }
         return inputs
 
-    RETURN_TYPES = tuple(["IMAGE"])
-    RETURN_NAMES = tuple(["final_image"])
+    RETURN_TYPES = ("STRING", )
+    RETURN_NAMES = ("final_value", )
     FUNCTION = "loop_close"
     CATEGORY = "DigbyWan"
 
@@ -77,7 +70,7 @@ class SingleImageLoopClose:
                 display_id = dynprompt.get_display_node_id(parent_id)
                 display_node = dynprompt.get_node(display_id)
                 class_type = display_node["class_type"]
-                if class_type not in ['SingleImageLoopClose']:
+                if class_type not in ['DigbyLoopClose']:
                     parent_ids.append(display_id)
                 if parent_id not in upstream:
                     upstream[parent_id] = []
@@ -105,27 +98,29 @@ class SingleImageLoopClose:
                 contained[child_id] = True
                 self.collect_contained(child_id, upstream, contained)
 
-    def loop_close(self, flow_control, current_image, max_iterations, 
-                  iteration_count=0, dynprompt=None, unique_id=None):
+    def loop_close(self, link_from_loop_open, max_iterations, end_of_loop,
+                 dynprompt=None, unique_id=None, iteration_count=0, ):
+        
+        loop_open_node = dynprompt.get_node(link_from_loop_open[0])
+        assert loop_open_node["class_type"] == "DigbyLoopOpen", "Link to a Loop Open Node"
+        max_it = loop_open_node["inputs"]["max_iterations"]
+        assert max_it == max_iterations, f"How do max_it not have there right values {max_it} vs {max_iterations}"
+
         print(f"Iteration {iteration_count} of {max_iterations}")
         
-        # 维度处理
-        if len(current_image.shape) == 3:
-            current_image = current_image.unsqueeze(0)
-
-        # 检查是否继续循环
+        # 检查是否继续循环  Check whether to continue the loop.
         if iteration_count >= max_iterations - 1:
             print(f"Loop finished with {iteration_count + 1} iterations")
-            return ([current_image])
+            return ([end_of_loop])
 
-        # 准备下一次循环
+        # 准备下一次循环 Preparing for the next cycle
         this_node = dynprompt.get_node(unique_id)
         upstream = {}
         parent_ids = []
         self.explore_dependencies(unique_id, dynprompt, upstream, parent_ids)
         parent_ids = list(set(parent_ids))
 
-        # 获取并处理输出节点
+        # 获取并处理输出节点 Get and process the output node
         prompts = dynprompt.get_original_prompt()
         output_nodes = {}
         for id in prompts:
@@ -140,24 +135,25 @@ class SingleImageLoopClose:
                         if is_link(v):
                             output_nodes[id] = v
 
-        # 创建新图
+        # 创建新图 Create a new graph
         graph = GraphBuilder()
         self.explore_output_nodes(dynprompt, upstream, output_nodes, parent_ids)
         
         contained = {}
-        open_node = flow_control[0]
+        open_node = link_from_loop_open[0]
+        print(f"flow control node: {dynprompt.get_node(open_node)}")
         self.collect_contained(open_node, upstream, contained)
         contained[unique_id] = True
         contained[open_node] = True
 
-        # 创建节点
+        # 创建节点 Create a node
         for node_id in contained:
             original_node = dynprompt.get_node(node_id)
             node = graph.node(original_node["class_type"], 
                             "Recurse" if node_id == unique_id else node_id)
             node.set_override_display_id(node_id)
             
-        # 设置连接
+        # 设置连接 Set up connection
         for node_id in contained:
             original_node = dynprompt.get_node(node_id)
             node = graph.lookup_node("Recurse" if node_id == unique_id else node_id)
@@ -168,13 +164,13 @@ class SingleImageLoopClose:
                 else:
                     node.set_input(k, v)
 
-        # 设置节点参数
+        # 设置节点参数 Set node parameters
         my_clone = graph.lookup_node("Recurse")
         my_clone.set_input("iteration_count", iteration_count + 1)
         
         new_open = graph.lookup_node(open_node)
         new_open.set_input("iteration_count", iteration_count + 1)
-        new_open.set_input("previous_image", current_image)
+        new_open.set_input("heartbeat_string", str(end_of_loop))
 
         print(f"Continuing to iteration {iteration_count + 1}")
 
