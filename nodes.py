@@ -40,7 +40,7 @@ class Wan22MiddleFrameToVideo:
     RETURN_NAMES = ("positive", "negative", "latent",)
     FUNCTION = "build_latent"
     CATEGORY = "DigbyWan"
-    DESCRIPTION = "Builds starting latent for WAN model sampling"
+    DESCRIPTION = "Builds starting latent for WAN model sampling, including First, Middle, and Last frames"
 
     def build_latent(self, positive, negative, vae, width, height, length, batch_size, start_image=None, middle_image=None, end_image=None, middle_image_position=0.5,middle_image_weight=1.0):
         spacial_scale = vae.spacial_compression_encode()
@@ -100,7 +100,7 @@ class Wan22SmoothVideoTransition:
 
     FUNCTION = "build_transition_latent"
     CATEGORY = "DigbyWan"
-    DESCRIPTION = "Builds starting latent for WAN model sampling"
+    DESCRIPTION = "Experimental node: Builds starting latent for WAN model sampling"
 
     def build_transition_latent(self, positive, negative, vae, width, height, batch_size, transition_frame, transition_context, transition_rerender, source_images):
         transition_half_length = transition_context + transition_rerender;
@@ -162,7 +162,7 @@ class WanVACEVideoSmoother:
 
     FUNCTION = "vace_smoother"
     CATEGORY = "DigbyWan"
-    DESCRIPTION = "Builds starting latent for WAN model sampling"
+    DESCRIPTION = "Build control_video and mask for VACE 2.1 workflows"
 
     def vace_smoother(self, video1, transition_size, transition_center, include_transition_frame, video2=None):
         transition_frames = transition_size // 2 
