@@ -31,7 +31,7 @@ class Wan22MiddleFrameToVideo:
                 "start_image": ("IMAGE",),
                 "middle_image": ("IMAGE",),
                 "end_image": ("IMAGE",),
-                "middle_image_position": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step":0.01 }),
+                "middle_image_position": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step":0.01, "display":"slider" }),
                 "middle_image_weight": ("FLOAT", {"default":1, "min":0.0, "max":1.0, "step":0.01, "display":"slider"})
             }
         }
@@ -60,7 +60,7 @@ class Wan22MiddleFrameToVideo:
             mid_start_pos = int(((middle_image_position*length)//4) * 4) # Align the middle frame with a 4-frame latent image boundary - seems to produce cleaner images without color flickering
             mid_end_pos = mid_start_pos + middle_image.shape[0] # end position add length of middle_image batch, typically just 1
 
-            image[mid_start_pos:mid_end_pos] = middle_image
+            image[mid_start_pos:mid_end_pos] = ((middle_image - 0.5) * middle_image_weight) + 0.5
             mask[:, :, mid_start_pos+mask_frame_offset:mid_end_pos + mask_frame_offset] = 1.0 - middle_image_weight
 
         if end_image is not None:
@@ -197,7 +197,7 @@ class WanVACEVideoSmoother:
 
         return(output_images, mask, video2[:1], width, height, total_length, video1[:-(video_context)], video2[video_context+1:], )
     
-class LoopExtract:
+class ImageBatchLoopExtract:
     @classmethod
     def INPUT_TYPES(s):
         return {
