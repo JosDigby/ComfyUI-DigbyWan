@@ -31,7 +31,7 @@ class DigbyLoopOpen:
     def loop_open(self, max_iterations, seed=0, unique_id=None, 
                  iteration_count=0, heartbeat_string="DigbyLoopOpen"):
                                 
-        return tuple(["stub", max_iterations, iteration_count,  ])
+        return tuple(["stub", iteration_count,  ])
 
 # @VariantSupport()
 class DigbyLoopClose:
