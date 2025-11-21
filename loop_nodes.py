@@ -18,7 +18,6 @@ class DigbyLoopOpen:
             "hidden": {
                 "unique_id": "UNIQUE_ID",
                 "iteration_count": ("INT", {"default": 0}),
-                "heartbeat_string": ("STRING", )
             }
         }
         return inputs
@@ -28,8 +27,8 @@ class DigbyLoopOpen:
     FUNCTION = "loop_open"
     CATEGORY = "DigbyWan"
 
-    def loop_open(self, max_iterations, previous_loop_block=None, seed=0, unique_id=None, 
-                 iteration_count=0, heartbeat_string="DigbyLoopOpen"):
+    def loop_open(self, max_iterations, previous_loop=None, seed=0, unique_id=None, 
+                 iteration_count=0):
                                 
         print(f"loop open\n")
 
@@ -44,7 +43,7 @@ class DigbyLoopClose:
         inputs = {
             "required": {
                 "loop_open": ("FLOW_CONTROL", {"rawLink": True}),
-                "any_string": ("STRING", {"forceInput":True}),
+                "string": ("STRING", {"forceInput":True, "tooltip":"Link to the last node inside the loop.  This defines the nodes to repeat."}),
             },
             "hidden": {
                 "dynprompt": "DYNPROMPT",
@@ -55,7 +54,7 @@ class DigbyLoopClose:
         return inputs
 
     RETURN_TYPES = ("DIGBY_LOOP", "STRING")
-    RETURN_NAMES = ("next_loop", "string_passthough")
+    RETURN_NAMES = ("next_loop", "passthough")
     FUNCTION = "loop_close"
     CATEGORY = "DigbyWan"
     OUTPUT_NODE  = True
@@ -103,7 +102,7 @@ class DigbyLoopClose:
                 contained[child_id] = True
                 self.collect_contained(child_id, upstream, contained)
 
-    def loop_close(self, loop_open, any_string,
+    def loop_close(self, loop_open, string,
                  dynprompt=None, unique_id=None, iteration_count=0, ):
         
         loop_open_node = dynprompt.get_node(loop_open[0])
@@ -116,7 +115,7 @@ class DigbyLoopClose:
         # 检查是否继续循环  Check whether to continue the loop.
         if iteration_count >= max_iterations - 1:
             print(f"Loop finished with {iteration_count + 1} iterations")
-            return (["loop_link"])
+            return (["loop_link", string])
 
         # 准备下一次循环 Preparing for the next cycle
         this_node = dynprompt.get_node(unique_id)
@@ -176,7 +175,6 @@ class DigbyLoopClose:
         
         new_open = graph.lookup_node(open_node)
         new_open.set_input("iteration_count", iteration_count + 1)
-        new_open.set_input("heartbeat_string", any_string))
 
         print(f"Continuing to iteration {iteration_count + 1}")
 
