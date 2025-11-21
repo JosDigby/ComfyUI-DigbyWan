@@ -15,9 +15,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanSmoothVideoTransition": "Wan 2.2 Smooth Video Transition",
     "WanVACEVideoSmoother": "Wan VACE 2.1 Video Smoother",
     "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
-    
+  
     "DigbyLoopOpen": "Loop Open",
     "DigbyLoopClose": "Loop Close",
-
 
 }

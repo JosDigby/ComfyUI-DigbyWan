@@ -1,7 +1,6 @@
 from comfy_execution.graph_utils import GraphBuilder, is_link
 from nodes import NODE_CLASS_MAPPINGS as ALL_NODE_CLASS_MAPPINGS
 
-# @VariantSupport()
 class DigbyLoopOpen:
     def __init__(self):
         pass
@@ -11,9 +10,10 @@ class DigbyLoopOpen:
         inputs = {
             "required": {
                 "max_iterations": ("INT", {"default": 5, "min": 1, "max": 100}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+#                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
+                "previous_loop": ("DIGBY_LOOP", { "rawLink" : True}),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -24,16 +24,17 @@ class DigbyLoopOpen:
         return inputs
 
     RETURN_TYPES = tuple(["FLOW_CONTROL", "INT", ])
-    RETURN_NAMES = tuple(["link_to_loop_close", "iteration_count", ])
+    RETURN_NAMES = tuple(["loop_close", "iteration_count", ])
     FUNCTION = "loop_open"
     CATEGORY = "DigbyWan"
 
-    def loop_open(self, max_iterations, seed=0, unique_id=None, 
+    def loop_open(self, max_iterations, previous_loop_block=None, seed=0, unique_id=None, 
                  iteration_count=0, heartbeat_string="DigbyLoopOpen"):
                                 
+        print(f"loop open\n")
+
         return tuple(["stub", iteration_count,  ])
 
-# @VariantSupport()
 class DigbyLoopClose:
     def __init__(self):
         pass
@@ -42,8 +43,8 @@ class DigbyLoopClose:
     def INPUT_TYPES(cls):
         inputs = {
             "required": {
-                "link_from_loop_open": ("FLOW_CONTROL", {"rawLink": True}),
-                "end_of_loop": ("STRING", {"forceInput":True}),
+                "loop_open": ("FLOW_CONTROL", {"rawLink": True}),
+                "any_string": ("STRING", {"forceInput":True}),
             },
             "hidden": {
                 "dynprompt": "DYNPROMPT",
@@ -53,10 +54,11 @@ class DigbyLoopClose:
         }
         return inputs
 
-    RETURN_TYPES = ("STRING", )
-    RETURN_NAMES = ("final_value", )
+    RETURN_TYPES = ("DIGBY_LOOP", "STRING")
+    RETURN_NAMES = ("next_loop", "string_passthough")
     FUNCTION = "loop_close"
     CATEGORY = "DigbyWan"
+    OUTPUT_NODE  = True
 
     def explore_dependencies(self, node_id, dynprompt, upstream, parent_ids):
         node_info = dynprompt.get_node(node_id)
@@ -75,6 +77,9 @@ class DigbyLoopClose:
                     upstream[parent_id] = []
                     self.explore_dependencies(parent_id, dynprompt, upstream, parent_ids)
                 upstream[parent_id].append(node_id)
+        
+        # Organize the output as a list
+        parent_ids = list(set(parent_ids))
 
     def explore_output_nodes(self, dynprompt, upstream, output_nodes, parent_ids):
         for parent_id in upstream:
@@ -89,6 +94,7 @@ class DigbyLoopClose:
                     else:
                         upstream[parent_id].append(output_id)
 
+
     def collect_contained(self, node_id, upstream, contained):
         if node_id not in upstream:
             return
@@ -97,11 +103,12 @@ class DigbyLoopClose:
                 contained[child_id] = True
                 self.collect_contained(child_id, upstream, contained)
 
-    def loop_close(self, link_from_loop_open, end_of_loop,
+    def loop_close(self, loop_open, any_string,
                  dynprompt=None, unique_id=None, iteration_count=0, ):
         
-        loop_open_node = dynprompt.get_node(link_from_loop_open[0])
+        loop_open_node = dynprompt.get_node(loop_open[0])
         assert loop_open_node["class_type"] == "DigbyLoopOpen", "Link to a Loop Open Node"
+
         max_iterations = loop_open_node["inputs"]["max_iterations"]
 
         print(f"Iteration {iteration_count} of {max_iterations}")
@@ -109,15 +116,14 @@ class DigbyLoopClose:
         # 检查是否继续循环  Check whether to continue the loop.
         if iteration_count >= max_iterations - 1:
             print(f"Loop finished with {iteration_count + 1} iterations")
-            return ([end_of_loop])
+            return (["loop_link"])
 
         # 准备下一次循环 Preparing for the next cycle
         this_node = dynprompt.get_node(unique_id)
         upstream = {}
         parent_ids = []
         self.explore_dependencies(unique_id, dynprompt, upstream, parent_ids)
-        parent_ids = list(set(parent_ids))
-
+ 
         # 获取并处理输出节点 Get and process the output node
         prompts = dynprompt.get_original_prompt()
         output_nodes = {}
@@ -126,6 +132,8 @@ class DigbyLoopClose:
             if "inputs" not in node:
                 continue
             class_type = node["class_type"]
+            if class_type == this_node["class_type"]:
+                continue
             if class_type in ALL_NODE_CLASS_MAPPINGS:
                 class_def = ALL_NODE_CLASS_MAPPINGS[class_type]
                 if hasattr(class_def, 'OUTPUT_NODE') and class_def.OUTPUT_NODE == True:
@@ -138,7 +146,7 @@ class DigbyLoopClose:
         self.explore_output_nodes(dynprompt, upstream, output_nodes, parent_ids)
         
         contained = {}
-        open_node = link_from_loop_open[0]
+        open_node = loop_open[0]
         print(f"flow control node: {dynprompt.get_node(open_node)}")
         self.collect_contained(open_node, upstream, contained)
         contained[unique_id] = True
@@ -168,7 +176,7 @@ class DigbyLoopClose:
         
         new_open = graph.lookup_node(open_node)
         new_open.set_input("iteration_count", iteration_count + 1)
-        new_open.set_input("heartbeat_string", str(end_of_loop))
+        new_open.set_input("heartbeat_string", any_string))
 
         print(f"Continuing to iteration {iteration_count + 1}")
 
