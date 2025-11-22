@@ -16,7 +16,7 @@ def explore_dependencies(node_id, dynprompt, upstream, parent_ids):
             display_id = dynprompt.get_display_node_id(parent_id)
             display_node = dynprompt.get_node(display_id)
             class_type = display_node["class_type"]
-            if class_type not in ['DigbyLoopClose']:
+            if class_type not in {'DigbyLoopClose', 'DigbyLoopCloseState'}:
                 parent_ids.append(display_id)
             if parent_id not in upstream:
                 upstream[parent_id] = []
@@ -65,10 +65,11 @@ class DigbyLoopOpen:
             "optional": {
                 "previous_loop": ("DIGBY_LOOP", { "rawLink" : True}),
             },
-            "hidden": {
+            "hidden": {             
+                "dynprompt": "DYNPROMPT", 
                 "unique_id": "UNIQUE_ID",
                 "iteration_count": ("INT", {"default": 0}),
-                "previous_loop_state": ("DIGBY_LOOP_STATE", {"default": None}) # Unused but including this makes it compatible with LoopClose and LoopCloseState
+                "previous_loop_state": ("DIGBY_LOOP_STATE", {"default": None}), # Unused but including this makes it compatible with LoopClose and LoopCloseState
             }
         }
         return inputs
@@ -78,8 +79,9 @@ class DigbyLoopOpen:
     FUNCTION = "loop_open"
     CATEGORY = "DigbyWan/loop"
 
-    def loop_open(self, max_iterations, previous_loop=None, unique_id=None, iteration_count=0):
-                    
+    def loop_open(self, max_iterations, previous_loop=None, previous_loop_state=None, dynprompt=None, unique_id=None, iteration_count=0, max_iterations_value=0 ):
+        this_node = dynprompt.get_node(unique_id)
+        this_node['persistent_values'] = { 'max_iterations' : max_iterations }
         return tuple(["stub", iteration_count ])
 
 class DigbyLoopOpenState:
@@ -91,13 +93,13 @@ class DigbyLoopOpenState:
         inputs = {
             "required": {
                 "max_iterations": ("INT", {"default": 5, "min": 1, "max": 100}),
-#                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             },
             "optional": {
                 "previous_loop": ("DIGBY_LOOP", { "rawLink" : True}),
                 "loop_state": ("DIGBY_LOOP_STATE", { "forceInput" : True}),
             },
             "hidden": {
+                "dynprompt": "DYNPROMPT",
                 "unique_id": "UNIQUE_ID",
                 "iteration_count": ("INT", {"default": 0}),
                 "previous_loop_state": ("DIGBY_LOOP_STATE", {"default": None})
@@ -110,7 +112,7 @@ class DigbyLoopOpenState:
     FUNCTION = "loop_open"
     CATEGORY = "DigbyWan/loop"
 
-    def loop_open(self, max_iterations, previous_loop=None, previous_loop_state=None, loop_state=None, seed=0, unique_id=None, 
+    def loop_open(self, max_iterations, dynprompt=None, previous_loop=None, previous_loop_state=None, loop_state=None, unique_id=None, 
                  iteration_count=0):
                     
         # Output a valid loop_state structure                          
@@ -120,6 +122,8 @@ class DigbyLoopOpenState:
             else:
                 previous_loop_state = { "string_val": None, "int_val": None, "float_val": None, "image": None }
 
+        this_node = dynprompt.get_node(unique_id)
+        this_node['persistent_values'] = { 'max_iterations' : max_iterations }
 
         return tuple(["stub", iteration_count, previous_loop_state ])
 
@@ -154,7 +158,7 @@ class DigbyLoopClose:
         loop_open_node = dynprompt.get_node(loop_open[0])
         assert loop_open_node["class_type"] in {"DigbyLoopOpen", "DigbyLoopOpenState"}, "Link to a 'Digby Loop Open' Node"
 
-        max_iterations = loop_open_node["inputs"]["max_iterations"]
+        max_iterations = loop_open_node["persistent_values"]["max_iterations"] # As assigned in loop open node
 
         print(f"Iteration {iteration_count} of {max_iterations}")
         
@@ -259,7 +263,7 @@ class DigbyLoopCloseState:
         loop_open_node = dynprompt.get_node(loop_open[0])
         assert loop_open_node["class_type"] in {"DigbyLoopOpen", "DigbyLoopOpenState"}, "Link to a 'Digby Loop Open' Node"
 
-        max_iterations = loop_open_node["inputs"]["max_iterations"]
+        max_iterations = loop_open_node["persistent_values"]["max_iterations"] # As assigned in loop open node
 
         print(f"Iteration {iteration_count} of {max_iterations}")
         
