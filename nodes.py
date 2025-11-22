@@ -148,7 +148,7 @@ class WanVACEVideoSmoother:
         return {
             "required": {
                 "video1": ("IMAGE",),          
-                "transition_size": ("INT", {"default":24, "min":8, "max": nodes.MAX_RESOLUTION, "step":8}),
+                "smooth_length": ("INT", {"default":37, "min":13, "max": nodes.MAX_RESOLUTION, "step":12}),
                 "transition_center": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
                 "include_transition_frame": ("BOOLEAN", {"default": True}),
             },
@@ -164,11 +164,12 @@ class WanVACEVideoSmoother:
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Build control_video and mask for VACE 2.1 workflows"
 
-    def vace_smoother(self, video1, transition_size, transition_center, include_transition_frame, video2=None):
-        transition_frames = transition_size // 2 
-        keep_frames = transition_frames // 2 
-        video_context = transition_frames + keep_frames 
-        total_length = (video_context * 2) + 1 
+    def vace_smoother(self, video1, smooth_length, transition_center, include_transition_frame, video2=None):
+        assert smooth_length % 12 == 1, f"smooth_length-1 must be a multiple of 12"
+
+        video_context = smooth_length // 2
+        keep_frames = video_context // 3 
+        transition_frames = keep_frames * 2
         
         height = video1[0].shape[0]
         width = video1[0,0].shape[0]
@@ -180,12 +181,12 @@ class WanVACEVideoSmoother:
             video1 = video1[:transition_center]
 
         else:
-            assert video_context < video1.shape[0], f"Input video1 too short.  Need at least {video_context} frames."
-            assert video_context < video2.shape[0], f"Input video2 too short.  Need at least {video_context+1} frames."
+            assert video_context < video1.shape[0], f"Input video1 too short.  Need at least {video_context - video1.shape[0]} more frames."
+            assert video_context+1 < video2.shape[0], f"Input video2 too short.  Need at least {video_context+1 - video2.shape[0]} more frames."
             video1 = video1[:]
             video2 = comfy.utils.common_upscale(video2[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
 
-        output_images = torch.ones((total_length, height, width, 3)) * 0.5
+        output_images = torch.ones((smooth_length, height, width, 3)) * 0.5
         output_images[:keep_frames] = video1[-video_context:-transition_frames]
         output_images[-keep_frames:] = video2[transition_frames+1:video_context+1]
         if include_transition_frame: output_images[video_context] = video2[0]
@@ -195,7 +196,7 @@ class WanVACEVideoSmoother:
         mask[-keep_frames:] = 0
         if include_transition_frame: mask[video_context] = 0
 
-        return(output_images, mask, video2[:1], width, height, total_length, video1[:-(video_context)], video2[video_context+1:], )
+        return(output_images, mask, video2[:1], width, height, smooth_length, video1[:-(video_context)], video2[video_context+1:], )
     
 class ImageBatchLoopExtract:
     @classmethod

@@ -1,5 +1,5 @@
 from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmoother, ImageBatchLoopExtract
-from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopStatePack, DigbyLoopStateUnpack, DigbyLoopOpenState, DigbyLoopCloseState
+from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables
 
 NODE_CLASS_MAPPINGS = {
     "WanMiddleFrameToVideo":Wan22MiddleFrameToVideo,
@@ -8,10 +8,8 @@ NODE_CLASS_MAPPINGS = {
     "ImageBatchLoopExtract":ImageBatchLoopExtract,
     "DigbyLoopOpen": DigbyLoopOpen,
     "DigbyLoopClose": DigbyLoopClose,
-    "DigbyLoopOpenState": DigbyLoopOpenState,
-    "DigbyLoopCloseState": DigbyLoopCloseState,
-    "DigbyLoopStatePack": DigbyLoopStatePack,
-    "DigbyLoopStateUnpack": DigbyLoopStateUnpack,
+    "DigbyLoopVariablesInit": DigbyLoopVariablesInit,
+    "DigbyLoopVariables": DigbyLoopVariables,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -22,8 +20,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   
     "DigbyLoopOpen": "Digby Loop Open",
     "DigbyLoopClose": "Digby Loop Close",
-    "DigbyLoopOpenState": "Digby Loop Open w/ State",
-    "DigbyLoopCloseState": "Digby Loop Close w/ State",
-    "DigbyLoopStatePack": "Digby Loop State Pack",
-    "DigbyLoopStateUnpack": "Digby Loop State Unpack",
+    "DigbyLoopVariablesInit": "Digby Loop Variable Initialize",
+    "DigbyLoopVariables": "Digby Loop Variables",
 }
