@@ -134,9 +134,9 @@ class Wan22SmoothVideoTransition:
         mask = torch.ones((1, 1, latent.shape[2] * 4, latent.shape[-2], latent.shape[-1]))
 
 
-        mask[:,:,mask_frame_offset+1] = 0
+        mask[:,:,:mask_frame_offset+1] = 0
         mask[:,:,-1:] = 0
-        if include_transition_frame: mask[:,:,video_context+mask_frame_offset]
+        if include_transition_frame: mask[:,:,video_context+mask_frame_offset] = 0
      
         concat_latent_image = vae.encode(output_images[:, :, :, :3])
         condition_mask = mask.view(1, mask.shape[2] // 4, 4, mask.shape[3], mask.shape[4]).transpose(1, 2)
@@ -146,7 +146,7 @@ class Wan22SmoothVideoTransition:
         out_latent = {}
         out_latent["samples"] = latent
 
-        return(positive, negative, out_latent, output_images,mask)
+        return(positive, negative, out_latent, output_images,mask[:,:,mask_frame_offset:])
 
 class WanVACEVideoSmoother:
     @classmethod
