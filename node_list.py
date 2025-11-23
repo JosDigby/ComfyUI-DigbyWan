@@ -1,15 +1,18 @@
-from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmoother, ImageBatchLoopExtract
+from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmoother, ImageBatchLoopExtract, ImageBatchLastFrameTrim, Wan22SmoothVideoTransition
 from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables
 
 NODE_CLASS_MAPPINGS = {
     "WanMiddleFrameToVideo":Wan22MiddleFrameToVideo,
-#    "WanSmoothVideoTransition":WanSmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
+    "WanSmoothVideoTransition":Wan22SmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
     "WanVACEVideoSmoother":WanVACEVideoSmoother,
     "ImageBatchLoopExtract":ImageBatchLoopExtract,
+    "ImageBatchLastFrameTrim":ImageBatchLastFrameTrim,
+
     "DigbyLoopOpen": DigbyLoopOpen,
     "DigbyLoopClose": DigbyLoopClose,
     "DigbyLoopVariablesInit": DigbyLoopVariablesInit,
     "DigbyLoopVariables": DigbyLoopVariables,
+
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -17,6 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "WanSmoothVideoTransition": "Wan 2.2 Smooth Video Transition",
     "WanVACEVideoSmoother": "Wan VACE 2.1 Video Smoother",
     "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
+    "ImageBatchLastFrameTrim": "Image Batch Last Frame Trim",
   
     "DigbyLoopOpen": "Digby Loop Open",
     "DigbyLoopClose": "Digby Loop Close",

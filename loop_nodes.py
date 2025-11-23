@@ -86,7 +86,7 @@ class DigbyLoopOpen:
             if (loop_variables is not None):
                 previous_loop_variables = loop_variables
             else:
-                previous_loop_variables = { "string_val": None, "int_val": None, "float_val": None, "image": None,  "latent": None }
+                previous_loop_variables = { "string_val": None, "int_val": None, "float_val": None, "images": None, }
 
         return tuple(["stub", previous_loop_variables, loop_index ])
 
@@ -111,7 +111,7 @@ class DigbyLoopClose:
         return inputs
 
     RETURN_TYPES = ("DIGBY_LOOP", "DIGBY_LOOP_VARIABLES",)
-    RETURN_NAMES = ("next_loop", "variables_passthough", )
+    RETURN_NAMES = ("next_loop", "loop_variables", )
     FUNCTION = "loop_close"
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE  = True
@@ -188,7 +188,7 @@ class DigbyLoopClose:
         new_open.set_input("loop_index", loop_index + 1)
         new_open.set_input("loop_variables", loop_variables)
 
-        print(f"Continuing to iteration {loop_index + 1}")
+        print(f"Continuing to iteration {loop_index + 2}")
 
         return {
             "result": tuple([my_clone.out(0), my_clone.out(1)]),
@@ -205,8 +205,7 @@ class DigbyLoopVariablesInit:
             "optional":{
                 "int_val": ("INT",),
                 "float_val": ("FLOAT",),
-                "image": ("IMAGE",),
-                "latent": ("LATENT",),
+                "images": ("IMAGE",),
             }
         }
         return inputs
@@ -217,13 +216,12 @@ class DigbyLoopVariablesInit:
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_init(self, string_val, int_val=None, float_val=None, image=None, latent=None):
+    def loop_variables_init(self, string_val, int_val=None, float_val=None, images=None, ):
         loop_variables = {
             "string_val": string_val,
             "int_val" : int_val,
             "float_val": float_val,
-            "image": image,
-            "latent": latent,
+            "images": images,
         }
         return([loop_variables])
 
@@ -235,8 +233,7 @@ class DigbyLoopVariables:
                 "loop_variables": ("DIGBY_LOOP_VARIABLES", {"forceInput": True} ),
             },
             "optional":{
-                "image": ("IMAGE",),
-                "latent": ("LATENT",),
+                "images": ("IMAGE",),
                 "string_val": ("STRING", {"forceInput": True}),
                 "int_val": ("INT",{"forceInput": True}),
                 "float_val": ("FLOAT",{"forceInput": True}),
@@ -244,17 +241,16 @@ class DigbyLoopVariables:
         }
         return inputs
 
-    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "IMAGE", "LATENT", "STRING", "INT", "FLOAT", )
-    RETURN_NAMES = ("loop_variables", "image", "latent", "sring_val", "int_val", "float_val", )
+    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "IMAGE", "STRING", "INT", "FLOAT", )
+    RETURN_NAMES = ("loop_variables", "images", "string_val", "int_val", "float_val", )
     FUNCTION = "loop_variables_set"
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_set(self, loop_variables, string_val=None, int_val=None, float_val=None, image=None, latent=None):
-        if image is not None: loop_variables["image"] = image
-        if latent is not None: loop_variables["latent"] = latent
+    def loop_variables_set(self, loop_variables, string_val=None, int_val=None, float_val=None, images=None, ):
+        if images is not None: loop_variables["images"] = images
         if string_val is not None: loop_variables["string_val"] = string_val
         if int_val is not None: loop_variables["int_val"] = int_val
         if float_val is not None: loop_variables["float_val"] = float_val
-        return([loop_variables, loop_variables["image"], loop_variables["latent"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], ])
+        return([loop_variables, loop_variables["images"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], ])
 

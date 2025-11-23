@@ -32,7 +32,6 @@ class Wan22MiddleFrameToVideo:
                 "middle_image": ("IMAGE",),
                 "end_image": ("IMAGE",),
                 "middle_image_position": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step":0.01, "display":"slider" }),
-                "middle_image_weight": ("FLOAT", {"default":1, "min":0.0, "max":1.0, "step":0.01, "display":"slider"})
             }
         }
 
@@ -42,7 +41,7 @@ class Wan22MiddleFrameToVideo:
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Builds starting latent for WAN model sampling, including First, Middle, and Last frames"
 
-    def build_latent(self, positive, negative, vae, width, height, length, batch_size, start_image=None, middle_image=None, end_image=None, middle_image_position=0.5,middle_image_weight=1.0):
+    def build_latent(self, positive, negative, vae, width, height, length, batch_size, start_image=None, middle_image=None, end_image=None, middle_image_position=0.5):
         spacial_scale = vae.spacial_compression_encode()
         latent = torch.zeros([batch_size, vae.latent_channels, ((length - 1) // 4) + 1, height // spacial_scale, width // spacial_scale], device=comfy.model_management.intermediate_device())
 
@@ -59,9 +58,8 @@ class Wan22MiddleFrameToVideo:
             middle_image = comfy.utils.common_upscale(middle_image[:length].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
             mid_start_pos = int(((middle_image_position*length)//4) * 4) # Align the middle frame with a 4-frame latent image boundary - seems to produce cleaner images without color flickering
             mid_end_pos = mid_start_pos + middle_image.shape[0] # end position add length of middle_image batch, typically just 1
-
-            image[mid_start_pos:mid_end_pos] = ((middle_image - 0.5) * middle_image_weight) + 0.5
-            mask[:, :, mid_start_pos+mask_frame_offset:mid_end_pos + mask_frame_offset] = 1.0 - middle_image_weight
+            image[mid_start_pos:mid_end_pos] = middle_image
+            mask[:, :, mid_start_pos+mask_frame_offset:mid_end_pos + mask_frame_offset] = 0
 
         if end_image is not None:
             end_image = comfy.utils.common_upscale(end_image[-length:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
@@ -88,51 +86,59 @@ class Wan22SmoothVideoTransition:
                 "width": ("INT", {"default": 832, "min": 16, "max": nodes.MAX_RESOLUTION, "step": 16 }),
                 "height": ("INT", {"default": 480, "min": 16, "max": nodes.MAX_RESOLUTION, "step": 16 }),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max":4096 }),
-                "transition_frame": ("INT", {"default":40, "min":1, "max": nodes.MAX_RESOLUTION, }),
-                "transition_context": ("INT", {"default":8, "min":4, "max": nodes.MAX_RESOLUTION, "step":4}),
-                "transition_rerender": ("INT", {"default":16, "min":4, "max": nodes.MAX_RESOLUTION, "step":4}),
-                "source_images": ("IMAGE",),
+                "video1": ("IMAGE",),          
+                "smooth_length": ("INT", {"default":37, "min":13, "max": nodes.MAX_RESOLUTION, "step":12}),
+                "transition_center": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
+                "include_transition_frame": ("BOOLEAN", {"default": True}),            
+                },
+            "optional": {
+                "video2": ("IMAGE",),
             }
         }
-
-    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "LATENT", "IMAGE", "MASK", "IMAGE", "INT")
-    RETURN_NAMES = ("positive", "negative", "latent", "transition_images", "transition_masks", "first_frame", "length")
+    
+    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "LATENT", "IMAGE","MASK")
+    RETURN_NAMES = ("positive", "negative", "latent", "images","masks")
 
     FUNCTION = "build_transition_latent"
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Experimental node: Builds starting latent for WAN model sampling"
 
-    def build_transition_latent(self, positive, negative, vae, width, height, batch_size, transition_frame, transition_context, transition_rerender, source_images):
-        transition_half_length = transition_context + transition_rerender;
-        total_length = (transition_half_length * 2) + 1
-        start_frame = transition_frame - transition_half_length
-        end_frame = transition_frame + transition_half_length 
-        mask_frame_offset = 3
-        
-        assert total_length < source_images.shape[0], f"Not enough frames in source_images.  Need lat least {total_length}"
-        assert start_frame >= 0, f"transition_frame too low. must be at least {transition_half_length}"
-        assert end_frame < source_images.shape[0], f"transition_frame too high.  Must be no more than {source_images.shape[0] - transition_half_length-1}"
+    def build_transition_latent(self, positive, negative, vae, width, height, batch_size, video1, smooth_length, transition_center, include_transition_frame, video2=None):
+        assert smooth_length % 12 == 1, f"smooth_length-1 must be a multiple of 12"
 
-        source_images = comfy.utils.common_upscale(source_images[start_frame:end_frame+1].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
-        source_images[transition_context+1:transition_context+transition_rerender] = 0.5
-        source_images[-(transition_context+transition_rerender):-transition_context] = 0.5
+        video_context = smooth_length // 2
+        keep_frames = video_context // 3 
+        transition_frames = keep_frames * 2
+        mask_frame_offset = 3
+        video1 = comfy.utils.common_upscale(video1[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
+    
+        if (video2 is None):
+            assert transition_center - video_context >= 0, f"Transition frame too close to beginning of input video1."
+            assert transition_center + video_context < video1.shape[0], f"Transition frame to close to end of input video1."
+            video2 = video1[transition_center:]
+            video1 = video1[:transition_center]
+
+        else:
+            assert video_context < video1.shape[0], f"Input video1 too short.  Need at least {video_context - video1.shape[0]} more frames."
+            assert video_context+1 < video2.shape[0], f"Input video2 too short.  Need at least {video_context+1 - video2.shape[0]} more frames."
+            video1 = video1[:]
+            video2 = comfy.utils.common_upscale(video2[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
+
+        output_images = torch.ones((smooth_length, height, width, 3)) * 0.5
+        output_images[:keep_frames] = video1[-video_context:-transition_frames]
+        output_images[-keep_frames:] = video2[transition_frames+1:video_context+1]
+        if include_transition_frame: output_images[video_context] = video2[0]
 
         spacial_scale = vae.spacial_compression_encode()
-        latent = torch.zeros([batch_size, vae.latent_channels, ((total_length - 1) // 4) + 1, height // spacial_scale, width // spacial_scale], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros([batch_size, vae.latent_channels, ((smooth_length - 1) // 4) + 1, height // spacial_scale, width // spacial_scale], device=comfy.model_management.intermediate_device())
         mask = torch.ones((1, 1, latent.shape[2] * 4, latent.shape[-2], latent.shape[-1]))
 
-        mask[:,:,:mask_frame_offset] = 0
-        mask[:,:,transition_half_length + mask_frame_offset] = 0
-        for m in range(0,transition_context+2):
-            blend_factor = min(1.0,m/transition_context)
 
-            source_images[m] = source_images[m] * (1-blend_factor) + (0.5 * blend_factor)
-            source_images[-m] = source_images[-m] * (1-blend_factor) + (0.5 * blend_factor)
-
-            mask[:,:,m+mask_frame_offset] = blend_factor
-            mask[:,:,-m] = blend_factor
-
-        concat_latent_image = vae.encode(source_images[:, :, :, :3])
+        mask[:,:,mask_frame_offset+1] = 0
+        mask[:,:,-1:] = 0
+        if include_transition_frame: mask[:,:,video_context+mask_frame_offset]
+     
+        concat_latent_image = vae.encode(output_images[:, :, :, :3])
         condition_mask = mask.view(1, mask.shape[2] // 4, 4, mask.shape[3], mask.shape[4]).transpose(1, 2)
         positive = node_helpers.conditioning_set_values(positive, {"concat_latent_image": concat_latent_image, "concat_mask": condition_mask})
         negative = node_helpers.conditioning_set_values(negative, {"concat_latent_image": concat_latent_image, "concat_mask": condition_mask})
@@ -140,7 +146,7 @@ class Wan22SmoothVideoTransition:
         out_latent = {}
         out_latent["samples"] = latent
 
-        return(positive, negative, out_latent, source_images, mask, source_images[:1], total_length,)
+        return(positive, negative, out_latent, output_images,mask)
 
 class WanVACEVideoSmoother:
     @classmethod
@@ -222,7 +228,32 @@ class ImageBatchLoopExtract:
 
         return(video_in[start_frame:start_frame+out_length],)
     
+class ImageBatchLastFrameTrim:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "images": ("IMAGE",),          
+            },
+        }
+    
+    RETURN_TYPES = ("IMAGE", "IMAGE", )
+    RETURN_NAMES = ("start_images", "last_image" )
 
+    FUNCTION = "last_image"
+    CATEGORY = "DigbyWan"
+    DESCRIPTION = "Remove the last image from a batch of images.  Useful for extending videos using last frame"
+
+    def last_image(self, images,):
+        last_image = image = torch.ones((0, 0, 0, 3)) 
+        if images is not None:
+            if images.shape[0] > 1:
+                last_image = images[-1:]
+                images = images[1:]
+            else:
+                last_image = images
+
+        return(images, last_image,)
                
  
     
