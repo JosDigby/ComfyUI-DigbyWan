@@ -2,6 +2,8 @@ from comfy_execution.graph_utils import GraphBuilder, is_link
 from nodes import NODE_CLASS_MAPPINGS as ALL_NODE_CLASS_MAPPINGS
 import torch
 import comfy.utils
+import comfy.model_management as mem_manager
+import gc
 #
 # Shared functions
 #
@@ -188,6 +190,12 @@ class DigbyLoopClose:
         new_open = graph.lookup_node(open_node)
         new_open.set_input("loop_index", loop_index + 1)
         new_open.set_input("loop_variables", loop_variables)
+
+        print("Cleaning memory")
+        mem_manager.soft_empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+        gc.collect()
 
         print(f"Continuing to iteration {loop_index + 2}")
 
