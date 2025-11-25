@@ -210,30 +210,28 @@ class DigbyLoopVariablesInit:
         inputs = {
             "required": {
                 "string_val": ("STRING", { "default": ""}),
-            },
-            "optional":{
                 "int_val": ("INT",),
                 "float_val": ("FLOAT",),
                 "images": ("IMAGE",),
+                "seed": ("INT",),
             }
         }
         return inputs
 
-    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", )
-    RETURN_NAMES = ("loop_variables",)
+    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "INT", )
+    RETURN_NAMES = ("loop_variables","seed",)
     FUNCTION = "loop_variables_init"
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_init(self, string_val, int_val=None, float_val=None, images=None, ):
+    def loop_variables_init(self, string_val, int_val=None, float_val=None, images=None, seed=0 ):
         loop_variables = {
             "string_val": string_val,
             "int_val" : int_val,
             "float_val": float_val,
             "images": images,
-            "image_accumulator" : None,
         }
-        return([loop_variables])
+        return([loop_variables, seed])
 
 class DigbyLoopVariables:
     @classmethod
@@ -247,13 +245,12 @@ class DigbyLoopVariables:
                 "string_val": ("STRING", {"forceInput": True}),
                 "int_val": ("INT",{"forceInput": True}),
                 "float_val": ("FLOAT",{"forceInput": True}),
-                "image_accumulator": ("IMAGE",),
             }
         }
         return inputs
 
-    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "IMAGE", "STRING", "INT", "FLOAT", "IMAGE" )
-    RETURN_NAMES = ("loop_variables", "images", "string_val", "int_val", "float_val", "stored_images")
+    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "IMAGE", "STRING", "INT", "FLOAT", )
+    RETURN_NAMES = ("loop_variables", "images", "string_val", "int_val", "float_val", )
     FUNCTION = "loop_variables_set"
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
@@ -263,14 +260,5 @@ class DigbyLoopVariables:
         if string_val is not None: loop_variables["string_val"] = string_val
         if int_val is not None: loop_variables["int_val"] = int_val
         if float_val is not None: loop_variables["float_val"] = float_val
-        if image_accumulator is not None:
-            if loop_variables["image_accumulator"] is None:
-                loop_variables["image_accumulator"] = image_accumulator
-            else:
-                image1 = loop_variables["image_accumulator"]
-                if image1.shape[1:] != image_accumulator.shape[1:]:
-                    image_accumulator = comfy.utils.common_upscale(image_accumulator.movedim(-1,1), image1.shape[2], image1.shape[1], "bilinear", "center").movedim(1,-1)
-                loop_variables["image_accumulator"] = torch.cat((image1, image_accumulator), dim=0)
-
-        return([loop_variables, loop_variables["images"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], loop_variables["image_accumulator"]])
+        return([loop_variables, loop_variables["images"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], ])
 

@@ -3,10 +3,10 @@ from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, D
 
 NODE_CLASS_MAPPINGS = {
     "Wan22MiddleFrameToVideo":Wan22MiddleFrameToVideo,
-    "Wan22SmoothVideoTransition":Wan22SmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
+#    "Wan22SmoothVideoTransition":Wan22SmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
     "WanVACEVideoSmoother":WanVACEVideoSmoother,
     "ImageBatchLoopExtract":ImageBatchLoopExtract,
-    "ImageBatchLastFrameTrim":ImageBatchLastFrameTrim,
+#    "ImageBatchLastFrameTrim":ImageBatchLastFrameTrim,
 
     "DigbyLoopOpen": DigbyLoopOpen,
     "DigbyLoopClose": DigbyLoopClose,

@@ -87,7 +87,7 @@ class Wan22SmoothVideoTransition:
                 "height": ("INT", {"default": 480, "min": 16, "max": nodes.MAX_RESOLUTION, "step": 16 }),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max":4096 }),
                 "video1": ("IMAGE",),          
-                "smooth_length": ("INT", {"default":37, "min":13, "max": nodes.MAX_RESOLUTION, "step":12}),
+                "smooth_length": ("INT", {"default":25, "min":9, "max": nodes.MAX_RESOLUTION, "step":8}),
                 "transition_center": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
                 "include_transition_frame": ("BOOLEAN", {"default": True}),            
                 },
@@ -104,11 +104,11 @@ class Wan22SmoothVideoTransition:
     DESCRIPTION = "Experimental node: Builds starting latent for WAN model sampling"
 
     def build_transition_latent(self, positive, negative, vae, width, height, batch_size, video1, smooth_length, transition_center, include_transition_frame, video2=None):
-        assert smooth_length % 12 == 1, f"smooth_length-1 must be a multiple of 12"
+        assert smooth_length % 8 == 1, f"smooth_length-1 must be a multiple of 8"
 
         video_context = smooth_length // 2
-        keep_frames = video_context // 3 
-        transition_frames = keep_frames * 2
+        keep_frames = video_context // 4 
+        transition_frames = keep_frames * 3
         mask_frame_offset = 3
         video1 = comfy.utils.common_upscale(video1[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
     
@@ -134,10 +134,8 @@ class Wan22SmoothVideoTransition:
         mask = torch.ones((1, 1, latent.shape[2] * 4, latent.shape[-2], latent.shape[-1]))
 
 
-#        mask[:,:,:keep_frames+mask_frame_offset] = 0
-#        mask[:,:,-keep_frames:] = 0
-        mask[:,:,keep_frames+mask_frame_offset-1] = 0
-        mask[:,:,-keep_frames] = 0
+        mask[:,:,:keep_frames+mask_frame_offset] = 0
+        mask[:,:,-keep_frames:] = 0
         if include_transition_frame: mask[:,:,video_context+mask_frame_offset] = 0
      
         concat_latent_image = vae.encode(output_images[:, :, :, :3])
