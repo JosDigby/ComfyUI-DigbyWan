@@ -4,6 +4,15 @@ import torch
 import comfy.utils
 import comfy.model_management as mem_manager
 import gc
+import tempfile
+import os
+import folder_paths
+import shutil
+
+from PIL import Image, ImageOps, ImageSequence
+import numpy as np
+
+
 #
 # Shared functions
 #
@@ -101,7 +110,7 @@ class DigbyLoopClose:
     def INPUT_TYPES(cls):
         inputs = {
             "required": {
-                "how_many_loops": ("INT", {"default": 1, "min":1, "tooltip":"Number of times to repeat the loop."}),
+                "max_loops": ("INT", {"default": 1, "min":1, "tooltip":"Number of times to repeat the loop."}),
                 "loop_open": ("FLOW_CONTROL", {"rawLink": True}),
                 "loop_variables": ("DIGBY_LOOP_VARIABLES", {"forceInput":True, "tooltip":"Link to the last node inside the loop.  This defines the node loop to repeat."}),
             },
@@ -119,16 +128,16 @@ class DigbyLoopClose:
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE  = True
 
-    def loop_close(self, how_many_loops, loop_open, loop_variables,
+    def loop_close(self, max_loops, loop_open, loop_variables,
                  dynprompt=None, unique_id=None, loop_index=0, ):
         
         loop_open_node = dynprompt.get_node(loop_open[0])
         assert loop_open_node["class_type"] in {"DigbyLoopOpen"}, "Must be linked to a 'Digby Loop Open' Node"
 
-        print(f"Iteration {loop_index+1} of {how_many_loops}")
+        print(f"Iteration {loop_index+1} of {max_loops}")
         
         # 检查是否继续循环  Check whether to continue the loop.
-        if loop_index >= how_many_loops - 1:
+        if loop_index >= max_loops - 1:
             print(f"Loop finished with {loop_index + 1} iterations") 
             return ("loop_link", loop_variables, )
 
@@ -212,10 +221,13 @@ class DigbyLoopVariablesInit:
                 "string_val": ("STRING", { "default": ""}),
                 "int_val": ("INT",),
                 "float_val": ("FLOAT",),
-                "images": ("IMAGE",),
                 "seed": ("INT",),
+            },
+            "optional": {
+                "images": ("IMAGE",),
             }
         }
+        
         return inputs
 
     RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "INT", )
@@ -230,6 +242,8 @@ class DigbyLoopVariablesInit:
             "int_val" : int_val,
             "float_val": float_val,
             "images": images,
+            "seed": seed,
+            "temp_dir": None,
         }
         return([loop_variables, seed])
 
@@ -255,10 +269,130 @@ class DigbyLoopVariables:
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_set(self, loop_variables, string_val=None, int_val=None, float_val=None, images=None, image_accumulator=None,):
+    def loop_variables_set(self, loop_variables, string_val=None, int_val=None, float_val=None, images=None, ):
         if images is not None: loop_variables["images"] = images
         if string_val is not None: loop_variables["string_val"] = string_val
         if int_val is not None: loop_variables["int_val"] = int_val
         if float_val is not None: loop_variables["float_val"] = float_val
         return([loop_variables, loop_variables["images"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], ])
 
+class DigbyLoopStoreImages:
+    def __init__(self):
+        self.type = "output"
+        self.prefix_append = ""
+        self.compress_level = 4
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "loop_variables": ("DIGBY_LOOP_VARIABLES", {"forceInput": True} ),
+                "images": ("IMAGE",),
+                "label": ("STRING", { "default": "label1"} ), 
+            }
+        }
+        return inputs
+
+    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "STRING", )
+    RETURN_NAMES = ("loop_variables", "output_path", )
+    FUNCTION = "loop_variables_store_images"
+    CATEGORY = "DigbyWan/loop"
+    OUTPUT_NODE = True
+
+    def loop_variables_store_images(self, loop_variables, images, label, ):
+        if loop_variables["temp_dir"] is None:
+            loop_variables["temp_dir"] = tempfile.TemporaryDirectory(delete=False).name
+
+        temp_path = loop_variables["temp_dir"]
+        filename_prefix = os.path.join(label, "digby_image")
+
+        # Code cribbed from the SaveImage node of core ComfyUI
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, temp_path, images[0].shape[1], images[0].shape[0])
+
+        results = list()
+        for (batch_number, image) in enumerate(images):
+            i = 255. * image.cpu().numpy()
+            img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+           
+            filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
+            file = f"{filename_with_batch_num}_{counter:05}_.png"
+            img.save(os.path.join(full_output_folder, file))
+            results.append({
+                "filename": file,
+                "subfolder": subfolder,
+                "type": self.type
+            })
+            counter += 1
+
+        return( loop_variables, full_output_folder,  )
+
+        
+class DigbyLoopRetrieveImages:
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "loop_variables": ("DIGBY_LOOP_VARIABLES", {"forceInput": True} ),
+                "label": ("STRING", { "default": "label1"} ), 
+                "delete_temp_files": ("BOOLEAN", {"default": True}),
+            }
+        }
+        return inputs
+
+    RETURN_TYPES = ("IMAGE", )
+    RETURN_NAMES = ("images", )
+    FUNCTION = "loop_variables_retrieve_images"
+    CATEGORY = "DigbyWan/loop"
+
+# Cribbed from KJNodes Load Images from Folder
+    def loop_variables_retrieve_images(self, loop_variables, label, delete_temp_files):       
+        folder_path = os.path.join(loop_variables["temp_dir"], label)
+        if not os.path.isdir(folder_path):
+            raise FileNotFoundError(f"Folder '{folder_path}' cannot be found.")
+        
+        valid_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.tga']
+        image_paths = []
+        for file in os.listdir(folder_path):
+            if any(file.lower().endswith(ext) for ext in valid_extensions):
+                image_paths.append(os.path.join(folder_path, file))
+
+        dir_files = sorted(image_paths)
+
+        if len(dir_files) == 0:
+            raise FileNotFoundError(f"No files in directory '{folder_path}'.")
+
+        images = []
+        image_count = 0
+        width = -1
+        height = -1
+
+        for image_path in dir_files:
+            if os.path.isdir(image_path):
+                continue
+            i = Image.open(image_path)
+            i = ImageOps.exif_transpose(i)
+            
+            # Resize image to maximum dimensions
+            if width == -1 and height == -1:
+                width = i.size[0]
+                height = i.size[1]
+            if i.size != (width, height):
+                i = i.resize((width, height), resample = Image.LANCZOS) # self.resize_with_aspect_ratio(i, width, height, keep_aspect_ratio)  
+            
+            image = i.convert("RGB")
+            image = np.array(image).astype(np.float32) / 255.0
+            image = torch.from_numpy(image)[None,]
+                    
+            images.append(image)
+            image_count += 1
+
+        if delete_temp_files:
+            shutil.rmtree(folder_path, ignore_errors=True)
+
+        if len(images) == 1:
+            return (images[0],)
+        elif len(images) > 1:
+            image1 = images[0]
+            for image2 in images[1:]:
+                image1 = torch.cat((image1, image2), dim=0)
+            return (image1,)

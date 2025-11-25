@@ -1,5 +1,13 @@
+#
+#
+# 
+# 
+# 
+# 
+# 
 from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmoother, ImageBatchLoopExtract, ImageBatchLastFrameTrim, Wan22SmoothVideoTransition
-from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables
+from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages
+
 
 NODE_CLASS_MAPPINGS = {
     "Wan22MiddleFrameToVideo":Wan22MiddleFrameToVideo,
@@ -12,6 +20,8 @@ NODE_CLASS_MAPPINGS = {
     "DigbyLoopClose": DigbyLoopClose,
     "DigbyLoopVariablesInit": DigbyLoopVariablesInit,
     "DigbyLoopVariables": DigbyLoopVariables,
+    "DigbyLoopStoreImages": DigbyLoopStoreImages,
+    "DigbyLoopRetrieveImages": DigbyLoopRetrieveImages,
 
 }
 
@@ -26,4 +36,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyLoopClose": "Digby Loop Close",
     "DigbyLoopVariablesInit": "Digby Loop Variable Initialize",
     "DigbyLoopVariables": "Digby Loop Variables",
+    "DigbyLoopStoreImages": "Digby Loop Store Images",
+    "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images"
 }
