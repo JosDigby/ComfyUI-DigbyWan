@@ -216,7 +216,7 @@ class WanVACEVideoExtend:
         }
 
     RETURN_TYPES = ("IMAGE", "MASK", "IMAGE", "INT", "INT", "INT", "IMAGE", )
-    RETURN_NAMES = ("vace_control_video", "vace_control_masks", "transition_frame", "width", "height", "length", "start_images", )
+    RETURN_NAMES = ("vace_control_video", "vace_control_masks", "start_frame", "width", "height", "length", "start_images", )
 
     FUNCTION = "vace_extend"
     CATEGORY = "DigbyWan"

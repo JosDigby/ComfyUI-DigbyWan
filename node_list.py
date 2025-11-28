@@ -7,6 +7,7 @@
 # 
 from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition
 from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages
+from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSamplerBasic
 
 
 NODE_CLASS_MAPPINGS = {
@@ -24,6 +25,10 @@ NODE_CLASS_MAPPINGS = {
     "DigbyLoopStoreImages": DigbyLoopStoreImages,
     "DigbyLoopRetrieveImages": DigbyLoopRetrieveImages,
 
+    "WanMoeKSampler": WanMoeKSampler,
+#    "WanMoeKSamplerAdvanced": WanMoeKSamplerAdvanced,
+    "WanMoeKSamplerBasic": WanMoeKSamplerBasic,
+
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -39,5 +44,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyLoopVariablesInit": "Digby Loop Variable Initialize",
     "DigbyLoopVariables": "Digby Loop Variables",
     "DigbyLoopStoreImages": "Digby Loop Store Images",
-    "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images"
+    "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images",
+
+    "WanMoeKSampler": "Wan MoE KSampler",
+    "WanMoeKSamplerAdvanced": "Wan MoE KSampler (Advanced)",
+    "WanMoeKSamplerBasic": "Wan MoE KSampler (Basic)",
 }
