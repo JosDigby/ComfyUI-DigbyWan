@@ -148,7 +148,7 @@ class Wan22SmoothVideoTransition:
 
         return(positive, negative, out_latent, output_images,mask[:,:,mask_frame_offset:])
 
-class WanVACEVideoSmoother:
+class WanVACEVideoSmooth:
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -168,7 +168,7 @@ class WanVACEVideoSmoother:
 
     FUNCTION = "vace_smoother"
     CATEGORY = "DigbyWan"
-    DESCRIPTION = "Build control_video and mask for VACE 2.1 workflows"
+    DESCRIPTION = "Build control_video and mask for VACE workflows"
 
     def vace_smoother(self, video1, smooth_length, transition_center, include_transition_frame, video2=None):
         assert smooth_length % 12 == 1, f"smooth_length-1 must be a multiple of 12"
@@ -204,6 +204,41 @@ class WanVACEVideoSmoother:
 
         return(output_images, mask, video2[:1], width, height, smooth_length, video1[:-(video_context)], video2[video_context+1:], )
     
+class WanVACEVideoExtend:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "video": ("IMAGE",),          
+                "frames_to_keep": ("INT", {"default":16, "min":1, "max": nodes.MAX_RESOLUTION,}),
+                "output_length": ("INT", {"default": 81, "min":5, "max": nodes.MAX_RESOLUTION, "step": 4}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "IMAGE", "INT", "INT", "INT", "IMAGE", )
+    RETURN_NAMES = ("vace_control_video", "vace_control_masks", "transition_frame", "width", "height", "length", "start_images", )
+
+    FUNCTION = "vace_extend"
+    CATEGORY = "DigbyWan"
+    DESCRIPTION = "Build control_video and mask for VACE 2.1 workflows"
+
+    def vace_extend(self, video, frames_to_keep, output_length):
+        assert frames_to_keep <= video.shape[0], f"frames_to_keep is longer then video output_length"
+        assert frames_to_keep <= output_length, f"frames_to_keep is longer than output video output_length"
+
+        height = video[0].shape[0]
+        width = video[0,0].shape[0]
+
+        keep_frames = video[-frames_to_keep:]
+
+        output_images = torch.ones((output_length, height, width, 3)) * 0.5
+        output_images[:frames_to_keep] = video[-frames_to_keep:]
+        
+        mask = torch.ones((output_images.shape[0], height, width))
+        mask[:frames_to_keep] = 0
+
+        return(output_images, mask, output_images[:1], width, height, output_length, video[:-frames_to_keep], )
+    
 class ImageBatchLoopExtract:
     @classmethod
     def INPUT_TYPES(s):
@@ -228,32 +263,29 @@ class ImageBatchLoopExtract:
 
         return(video_in[start_frame:start_frame+out_length],)
     
-class ImageBatchLastFrameTrim:
+class ImageBatchSplit:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "images": ("IMAGE",),          
+                "images": ("IMAGE",),  
+                "split_at_frame": ("INT", { "default": -1} )        
             },
         }
     
     RETURN_TYPES = ("IMAGE", "IMAGE", )
-    RETURN_NAMES = ("start_images", "last_image" )
+    RETURN_NAMES = ("start_images", "end_images" )
 
-    FUNCTION = "last_image"
+    FUNCTION = "split"
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Remove the last image from a batch of images.  Useful for extending videos using last frame"
 
-    def last_image(self, images,):
-        last_image = image = torch.ones((0, 0, 0, 3)) 
-        if images is not None:
-            if images.shape[0] > 1:
-                last_image = images[-1:]
-                images = images[1:]
-            else:
-                last_image = images
+    def split(self, images,split_at_frame):
 
-        return(images, last_image,)
+        assert abs(split_at_frame < image.shape[0]), f"Invalid split frame {split_frame}"
+        start_images = images[:split_at_frame]
+        end_images = images[split_at_frame:]
+        return(start_images, end_images)
                
  
     
