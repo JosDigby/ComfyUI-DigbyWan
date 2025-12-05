@@ -204,6 +204,47 @@ class WanVACEVideoSmooth:
 
         return(output_images, mask, video2[:1], width, height, smooth_length, video1[:-(video_context)], video2[video_context+1:], )
     
+class WanVACEVideoBridge:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "video1": ("IMAGE",),          
+                "video2": ("IMAGE",),
+                "total_length": ("INT", {"default":49, "min":5, "max": nodes.MAX_RESOLUTION, "step":4}),
+                "frames_from_each_source": ("INT", {"default":8, "min":1, "max": nodes.MAX_RESOLUTION, "step":1}),
+            },
+            "optional": {
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT", "INT", "IMAGE", "IMAGE", )
+    RETURN_NAMES = ("vace_control_video", "vace_control_masks", "width", "height", "length", "start_images", "end_images",  )
+
+    FUNCTION = "vace_bridge"
+    CATEGORY = "DigbyWan"
+    DESCRIPTION = "Build control_video and mask for VACE workflows"
+
+    def vace_bridge(self, video1, video2, total_length, frames_from_each_source, ):
+        height = video1[0].shape[0]
+        width = video1[0,0].shape[0]
+
+        assert frames_from_each_source < video1.shape[0], f"Input video1 too short (minimum {frames_from_each_source+1} frames needed)"
+        assert frames_from_each_source < video2.shape[0], f"Input video2 too short (minimum {frames_from_each_source+1} frames needed)"
+        video1 = video1[:]
+        video2 = comfy.utils.common_upscale(video2[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
+
+        output_images = torch.ones((total_length, height, width, 3)) * 0.5
+        output_images[:frames_from_each_source] = video1[-frames_from_each_source:]
+        output_images[-frames_from_each_source:] = video2[:frames_from_each_source]
+        
+        mask = torch.ones((output_images.shape[0], height, width))
+        mask[:frames_from_each_source] = 0
+        mask[-frames_from_each_source:] = 0
+
+        return(output_images, mask, width, height, total_length, video1[:frames_from_each_source], video2[frames_from_each_source:], )
+    
+
 class WanVACEVideoExtend:
     @classmethod
     def INPUT_TYPES(s):

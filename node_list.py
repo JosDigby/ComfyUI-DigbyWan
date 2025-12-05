@@ -5,7 +5,7 @@
 # 
 # 
 # 
-from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition
+from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition, WanVACEVideoBridge
 from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages
 from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSamplerBasic
 
@@ -15,6 +15,7 @@ NODE_CLASS_MAPPINGS = {
 #    "Wan22SmoothVideoTransition":Wan22SmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
     "WanVACEVideoSmooth":WanVACEVideoSmooth,
     "WanVACEVideoExtend":WanVACEVideoExtend,
+    "WanVACEVideoBridge":WanVACEVideoBridge,
     "ImageBatchLoopExtract":ImageBatchLoopExtract,
     "ImageBatchSplit":ImageBatchSplit,
 
@@ -34,8 +35,9 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Wan22MiddleFrameToVideo": "Wan 2.2 Middle Frame To Video",
     "Wan22SmoothVideoTransition": "Wan 2.2 Smooth Video Transition",
-    "WanVACEVideoSmooth": "Wan VACE Video Smooth Transition",
+    "WanVACEVideoSmooth": "Wan VACE Video Smooth",
     "WanVACEVideoExtend": "Wan VACE Video Extend",
+    "WanVACEVideoBridge": "Wan VACE Video Bridge",
     "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
     "ImageBatchSplit": "Image Batch Split At",
   

@@ -5,7 +5,7 @@ app.registerExtension({
 		console.log("WanVACEVideoSmoother setup complete")
     },
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeType.comfyClass=="WanVACEVideoSmoother") {
+        if (nodeType.comfyClass=="WanVACEVideoSmooth") {
        		const onConnectionsChange = nodeType.prototype.onConnectionsChange;
     		nodeType.prototype.onConnectionsChange = function (side,slot,connect,link_info,slot_info) {     
 	    		const r = onConnectionsChange?.apply(this, arguments);   
