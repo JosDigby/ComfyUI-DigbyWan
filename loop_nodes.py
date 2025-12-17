@@ -288,7 +288,7 @@ class DigbyLoopStoreImages:
             "required": {
                 "loop_variables": ("DIGBY_LOOP_VARIABLES", {"forceInput": True} ),
                 "images": ("IMAGE",),
-                "label": ("STRING", { "default": "label1"} ), 
+                "image_set_label": ("STRING", { "default": "set1"} ), 
             }
         }
         return inputs
@@ -333,7 +333,7 @@ class DigbyLoopRetrieveImages:
         inputs = {
             "required": {
                 "loop_variables": ("DIGBY_LOOP_VARIABLES", {"forceInput": True} ),
-                "label": ("STRING", { "default": "label1"} ), 
+                "image_set_label": ("STRING", { "default": "set1"} ), 
                 "delete_temp_files": ("BOOLEAN", {"default": True}),
             }
         }

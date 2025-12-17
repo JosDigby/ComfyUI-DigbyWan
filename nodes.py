@@ -87,8 +87,8 @@ class Wan22SmoothVideoTransition:
                 "height": ("INT", {"default": 480, "min": 16, "max": nodes.MAX_RESOLUTION, "step": 16 }),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max":4096 }),
                 "video1": ("IMAGE",),          
-                "smooth_length": ("INT", {"default":25, "min":9, "max": nodes.MAX_RESOLUTION, "step":8}),
-                "transition_center": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
+                "output_length": ("INT", {"default":25, "min":9, "max": nodes.MAX_RESOLUTION, "step":8}),
+                "transition_frame": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
                 "include_transition_frame": ("BOOLEAN", {"default": True}),            
                 },
             "optional": {
@@ -103,20 +103,20 @@ class Wan22SmoothVideoTransition:
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Experimental node: Builds starting latent for WAN model sampling"
 
-    def build_transition_latent(self, positive, negative, vae, width, height, batch_size, video1, smooth_length, transition_center, include_transition_frame, video2=None):
-        assert smooth_length % 8 == 1, f"smooth_length-1 must be a multiple of 8"
+    def build_transition_latent(self, positive, negative, vae, width, height, batch_size, video1, output_length, transition_frame, include_transition_frame, video2=None):
+        assert output_length % 8 == 1, f"output_length-1 must be a multiple of 8"
 
-        video_context = smooth_length // 2
+        video_context = output_length // 2
         keep_frames = video_context // 4 
         transition_frames = keep_frames * 3
         mask_frame_offset = 3
         video1 = comfy.utils.common_upscale(video1[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
     
         if (video2 is None):
-            assert transition_center - video_context >= 0, f"Transition frame too close to beginning of input video1."
-            assert transition_center + video_context < video1.shape[0], f"Transition frame to close to end of input video1."
-            video2 = video1[transition_center:]
-            video1 = video1[:transition_center]
+            assert transition_frame - video_context >= 0, f"Transition frame too close to beginning of input video1."
+            assert transition_frame + video_context < video1.shape[0], f"Transition frame to close to end of input video1."
+            video2 = video1[transition_frame:]
+            video1 = video1[:transition_frame]
 
         else:
             assert video_context < video1.shape[0], f"Input video1 too short.  Need at least {video_context - video1.shape[0]} more frames."
@@ -124,13 +124,13 @@ class Wan22SmoothVideoTransition:
             video1 = video1[:]
             video2 = comfy.utils.common_upscale(video2[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
 
-        output_images = torch.ones((smooth_length, height, width, 3)) * 0.5
+        output_images = torch.ones((output_length, height, width, 3)) * 0.5
         output_images[:keep_frames] = video1[-video_context:-transition_frames]
         output_images[-keep_frames:] = video2[transition_frames+1:video_context+1]
         if include_transition_frame: output_images[video_context] = video2[0]
 
         spacial_scale = vae.spacial_compression_encode()
-        latent = torch.zeros([batch_size, vae.latent_channels, ((smooth_length - 1) // 4) + 1, height // spacial_scale, width // spacial_scale], device=comfy.model_management.intermediate_device())
+        latent = torch.zeros([batch_size, vae.latent_channels, ((output_length - 1) // 4) + 1, height // spacial_scale, width // spacial_scale], device=comfy.model_management.intermediate_device())
         mask = torch.ones((1, 1, latent.shape[2] * 4, latent.shape[-2], latent.shape[-1]))
 
 
@@ -154,8 +154,8 @@ class WanVACEVideoSmooth:
         return {
             "required": {
                 "video1": ("IMAGE",),          
-                "smooth_length": ("INT", {"default":37, "min":13, "max": nodes.MAX_RESOLUTION, "step":12}),
-                "transition_center": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
+                "output_length": ("INT", {"default":37, "min":13, "max": nodes.MAX_RESOLUTION, "step":12}),
+                "transition_frame": ("INT", {"default":0, "min":0, "max": nodes.MAX_RESOLUTION, "step":1}),
                 "include_transition_frame": ("BOOLEAN", {"default": True}),
             },
             "optional": {
@@ -170,10 +170,10 @@ class WanVACEVideoSmooth:
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Build control_video and mask for VACE workflows"
 
-    def vace_smoother(self, video1, smooth_length, transition_center, include_transition_frame, video2=None):
-        assert smooth_length % 12 == 1, f"smooth_length-1 must be a multiple of 12"
+    def vace_smoother(self, video1, output_length, transition_frame, include_transition_frame, video2=None):
+        assert output_length % 12 == 1, f"output_length-1 must be a multiple of 12"
 
-        video_context = smooth_length // 2
+        video_context = output_length // 2
         keep_frames = video_context // 3 
         transition_frames = keep_frames * 2
         
@@ -181,10 +181,10 @@ class WanVACEVideoSmooth:
         width = video1[0,0].shape[0]
 
         if (video2 is None):
-            assert transition_center - video_context >= 0, f"Transition frame too close to beginning of input video1."
-            assert transition_center + video_context < video1.shape[0], f"Transition frame to close to end of input video1."
-            video2 = video1[transition_center:]
-            video1 = video1[:transition_center]
+            assert transition_frame - video_context >= 0, f"Transition frame too close to beginning of input video1."
+            assert transition_frame + video_context < video1.shape[0], f"Transition frame to close to end of input video1."
+            video2 = video1[transition_frame:]
+            video1 = video1[:transition_frame]
 
         else:
             assert video_context < video1.shape[0], f"Input video1 too short.  Need at least {video_context - video1.shape[0]} more frames."
@@ -192,7 +192,7 @@ class WanVACEVideoSmooth:
             video1 = video1[:]
             video2 = comfy.utils.common_upscale(video2[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
 
-        output_images = torch.ones((smooth_length, height, width, 3)) * 0.5
+        output_images = torch.ones((output_length, height, width, 3)) * 0.5
         output_images[:keep_frames] = video1[-video_context:-transition_frames]
         output_images[-keep_frames:] = video2[transition_frames+1:video_context+1]
         if include_transition_frame: output_images[video_context] = video2[0]
@@ -202,7 +202,7 @@ class WanVACEVideoSmooth:
         mask[-keep_frames:] = 0
         if include_transition_frame: mask[video_context] = 0
 
-        return(output_images, mask, video2[:1], width, height, smooth_length, video1[:-(video_context)], video2[video_context+1:], )
+        return(output_images, mask, video2[:1], width, height, output_length, video1[:-(video_context)], video2[video_context+1:], )
     
 class WanVACEVideoBridge:
     @classmethod
@@ -211,7 +211,7 @@ class WanVACEVideoBridge:
             "required": {
                 "video1": ("IMAGE",),          
                 "video2": ("IMAGE",),
-                "total_length": ("INT", {"default":49, "min":5, "max": nodes.MAX_RESOLUTION, "step":4}),
+                "output_length": ("INT", {"default":49, "min":5, "max": nodes.MAX_RESOLUTION, "step":4}),
                 "frames_from_each_source": ("INT", {"default":8, "min":1, "max": nodes.MAX_RESOLUTION, "step":1}),
             },
             "optional": {
@@ -225,7 +225,7 @@ class WanVACEVideoBridge:
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Build control_video and mask for VACE workflows"
 
-    def vace_bridge(self, video1, video2, total_length, frames_from_each_source, ):
+    def vace_bridge(self, video1, video2, output_length, frames_from_each_source, ):
         height = video1[0].shape[0]
         width = video1[0,0].shape[0]
 
@@ -234,7 +234,7 @@ class WanVACEVideoBridge:
         video1 = video1[:]
         video2 = comfy.utils.common_upscale(video2[:].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)
 
-        output_images = torch.ones((total_length, height, width, 3)) * 0.5
+        output_images = torch.ones((output_length, height, width, 3)) * 0.5
         output_images[:frames_from_each_source] = video1[-frames_from_each_source:]
         output_images[-frames_from_each_source:] = video2[:frames_from_each_source]
         
@@ -242,7 +242,7 @@ class WanVACEVideoBridge:
         mask[:frames_from_each_source] = 0
         mask[-frames_from_each_source:] = 0
 
-        return(output_images, mask, width, height, total_length, video1[:frames_from_each_source], video2[frames_from_each_source:], )
+        return(output_images, mask, width, height, output_length, video1[:frames_from_each_source], video2[frames_from_each_source:], )
     
 
 class WanVACEVideoExtend:
@@ -251,8 +251,8 @@ class WanVACEVideoExtend:
         return {
             "required": {
                 "video": ("IMAGE",),          
-                "frames_to_keep": ("INT", {"default":16, "min":1, "max": nodes.MAX_RESOLUTION,}),
                 "output_length": ("INT", {"default": 81, "min":5, "max": nodes.MAX_RESOLUTION, "step": 4}),
+                "frames_to_keep": ("INT", {"default":16, "min":1, "max": nodes.MAX_RESOLUTION,}),
             },
         }
 
@@ -263,7 +263,7 @@ class WanVACEVideoExtend:
     CATEGORY = "DigbyWan"
     DESCRIPTION = "Build control_video and mask for VACE 2.1 workflows"
 
-    def vace_extend(self, video, frames_to_keep, output_length):
+    def vace_extend(self, video, output_length, frames_to_keep, ):
         assert frames_to_keep <= video.shape[0], f"frames_to_keep is longer then video output_length"
         assert frames_to_keep <= output_length, f"frames_to_keep is longer than output video output_length"
 

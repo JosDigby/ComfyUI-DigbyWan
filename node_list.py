@@ -11,11 +11,11 @@ from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSampler
 
 
 NODE_CLASS_MAPPINGS = {
-    "Wan22MiddleFrameToVideo":Wan22MiddleFrameToVideo,
-#    "Wan22SmoothVideoTransition":Wan22SmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
-    "WanVACEVideoSmooth":WanVACEVideoSmooth,
-    "WanVACEVideoExtend":WanVACEVideoExtend,
-    "WanVACEVideoBridge":WanVACEVideoBridge,
+    "DigbyWan22MiddleFrameToVideo":Wan22MiddleFrameToVideo,
+#    "DigbyWan22SmoothVideoTransition":Wan22SmoothVideoTransition, # This node is experimental and doesn't produce good output.  Uncomment this line to enable.
+    "DigbyWanVACEVideoSmooth":WanVACEVideoSmooth,
+    "DigbyWanVACEVideoExtend":WanVACEVideoExtend,
+    "DigbyWanVACEVideoBridge":WanVACEVideoBridge,
 #    "ImageBatchLoopExtract":ImageBatchLoopExtract,
 #    "ImageBatchSplit":ImageBatchSplit,
 
@@ -26,20 +26,20 @@ NODE_CLASS_MAPPINGS = {
     "DigbyLoopStoreImages": DigbyLoopStoreImages,
     "DigbyLoopRetrieveImages": DigbyLoopRetrieveImages,
 
-    "WanMoeKSampler": WanMoeKSampler,
-#    "WanMoeKSamplerAdvanced": WanMoeKSamplerAdvanced,
-    "WanMoeKSamplerBasic": WanMoeKSamplerBasic,
+    "DigbyWanMoeKSampler": WanMoeKSampler,
+#    "DigbyWanMoeKSamplerAdvanced": WanMoeKSamplerAdvanced,
+    "DigbyWanMoeKSamplerBasic": WanMoeKSamplerBasic,
 
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Wan22MiddleFrameToVideo": "Wan 2.2 Middle Frame To Video",
-    "Wan22SmoothVideoTransition": "Wan 2.2 Smooth Video Transition",
-    "WanVACEVideoSmooth": "Wan VACE Video Smooth",
-    "WanVACEVideoExtend": "Wan VACE Video Extend",
-    "WanVACEVideoBridge": "Wan VACE Video Bridge",
-    "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
-    "ImageBatchSplit": "Image Batch Split At",
+    "DigbyWan22MiddleFrameToVideo": "Wan 2.2 Middle Frame To Video",
+    "DigbyWan22SmoothVideoTransition": "Wan 2.2 Smooth Video Transition",
+    "DigbyWanVACEVideoSmooth": "Wan VACE Video Smooth",
+    "DigbyWanVACEVideoExtend": "Wan VACE Video Extend",
+    "DigbyWanVACEVideoBridge": "Wan VACE Video Bridge",
+#    "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
+#    "ImageBatchSplit": "Image Batch Split At",
   
     "DigbyLoopOpen": "Digby Loop Open",
     "DigbyLoopClose": "Digby Loop Close",
@@ -48,7 +48,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyLoopStoreImages": "Digby Loop Store Images",
     "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images",
 
-    "WanMoeKSampler": "Digby MoE KSampler",
-    "WanMoeKSamplerAdvanced": "Digby MoE KSampler (Advanced)",
-    "WanMoeKSamplerBasic": "Digby MoE KSampler (Basic)",
+    "DigbyWanMoeKSampler": "Digby MoE KSampler",
+#    "DigbyWanMoeKSamplerAdvanced": "Digby MoE KSampler (Advanced)",
+    "DigbyWanMoeKSamplerBasic": "Digby MoE KSampler (Basic)",
 }
