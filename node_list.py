@@ -16,8 +16,8 @@ NODE_CLASS_MAPPINGS = {
     "WanVACEVideoSmooth":WanVACEVideoSmooth,
     "WanVACEVideoExtend":WanVACEVideoExtend,
     "WanVACEVideoBridge":WanVACEVideoBridge,
-    "ImageBatchLoopExtract":ImageBatchLoopExtract,
-    "ImageBatchSplit":ImageBatchSplit,
+#    "ImageBatchLoopExtract":ImageBatchLoopExtract,
+#    "ImageBatchSplit":ImageBatchSplit,
 
     "DigbyLoopOpen": DigbyLoopOpen,
     "DigbyLoopClose": DigbyLoopClose,
@@ -48,7 +48,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyLoopStoreImages": "Digby Loop Store Images",
     "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images",
 
-    "WanMoeKSampler": "Wan MoE KSampler",
-    "WanMoeKSamplerAdvanced": "Wan MoE KSampler (Advanced)",
-    "WanMoeKSamplerBasic": "Wan MoE KSampler (Basic)",
+    "WanMoeKSampler": "Digby MoE KSampler",
+    "WanMoeKSamplerAdvanced": "Digby MoE KSampler (Advanced)",
+    "WanMoeKSamplerBasic": "Digby MoE KSampler (Basic)",
 }
