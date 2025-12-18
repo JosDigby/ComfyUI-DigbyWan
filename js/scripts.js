@@ -1,15 +1,15 @@
 import { app } from "../../scripts/app.js";
 app.registerExtension({ 
-	name: "WanVACEVideoSmoother",
+	name: "DigbyWanVACEVideoSmooth",
 	async setup() { 
-		console.log("WanVACEVideoSmoother setup complete")
     },
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeType.comfyClass=="WanVACEVideoSmooth") {
+        if (nodeType.comfyClass=="DigbyWanVACEVideoSmooth") {
        		const onConnectionsChange = nodeType.prototype.onConnectionsChange;
     		nodeType.prototype.onConnectionsChange = function (side,slot,connect,link_info,slot_info) {     
 	    		const r = onConnectionsChange?.apply(this, arguments);   
                 if ((side == 1) && (slot_info.name == "video2")) {
+                    console.log("ok, i got the matching slot")
                     var disable_transition_center = ((link_info != null) && (connect)) 
                     this.widgets[1].disabled = disable_transition_center
                 }
@@ -21,12 +21,11 @@ app.registerExtension({
 })
 
 app.registerExtension({ 
-	name: "Wan22SmoothVideoTransition",
+	name: "DigbyWan22SmoothVideoTransition",
 	async setup() { 
-		console.log("Wan22SmoothVideoTransition setup complete")
     },
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeType.comfyClass=="Wan22SmoothVideoTransition") {
+        if (nodeType.comfyClass=="DigbyWan22SmoothVideoTransition") {
        		const onConnectionsChange = nodeType.prototype.onConnectionsChange;
     		nodeType.prototype.onConnectionsChange = function (side,slot,connect,link_info,slot_info) {     
 	    		const r = onConnectionsChange?.apply(this, arguments);   
