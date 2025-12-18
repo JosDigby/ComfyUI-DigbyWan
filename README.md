@@ -23,7 +23,7 @@ This collection of nodes for ComfyUI is intended to provide simplified ways to u
 | [Wan 2.2 Middle Frame To Video](#wan-22-middle-frame-to-video) | Implementation of FMLF2V for Wan 2.2.
 |  |  |
  | [Digby Loop Open](#digby-loop) | A streamlined loop implementation. |
- | [Digby Loop Close](#digby-loop) | A stramlined loop implementation. |
+ | [Digby Loop Close](#digby-loop) | A streamlined loop implementation. |
  | [Digby Loop Variable Initialize](#digby-loop) | Loop variables for saving state through iterations. |
  | [Digby Loop Variables](#digby-loop) | Loop variables for saving state through iterations. |
  | [Digby Loop Store Images](#digby-loop) | Store images into temporary disk storage in loops. |
