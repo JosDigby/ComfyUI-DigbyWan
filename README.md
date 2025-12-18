@@ -1,11 +1,17 @@
 # ComfyUI-DigbyWan
 
-This collection of nodes for ComfyUI is intended to provide simplified ways to use various Wan models. **These nodes are a WIP.  Future changes may break things.**
+This collection of nodes for ComfyUI is intended to provide simplified ways to use various Wan models, as well as basic looping nodes for making extended length videos.
+
+
+
+
+**These nodes are a WIP.  Future changes may break things.**
 
 * [Node List](#node-list)
 * [Installation](#installation)
 * [Node Descriptions](#node-descriptions)
 * [Workflows](#workflows)
+* [Credits](#credits)
 
 ## Node List
 
@@ -84,6 +90,12 @@ This node allows for midle frame inclusion in Wan 2.2 video generation.  All the
 
 ## Workflows
 
-*Check back later.*
+Workflow templates are provided and can be found in the ComfyUI Template list under ComfyUI-DigbyWan.
 
 
+## Credits
+
+These nodes use code and logic from:
+
+* [stduhpf/ComfyUI-WanMoeKSampler](https://github.com/stduhpf/ComfyUI-WanMoeKSampler)
+* [WainWong/ComfyUI-Loop-image](https://github.com/WainWong/ComfyUI-Loop-image)
