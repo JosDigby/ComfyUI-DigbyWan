@@ -299,12 +299,12 @@ class DigbyLoopStoreImages:
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_store_images(self, loop_variables, images, label, ):
+    def loop_variables_store_images(self, loop_variables, images, image_set_label, ):
         if loop_variables["temp_dir"] is None:
             loop_variables["temp_dir"] = tempfile.TemporaryDirectory(delete=False).name
 
         temp_path = loop_variables["temp_dir"]
-        filename_prefix = os.path.join(label, "digby_image")
+        filename_prefix = os.path.join(image_set_label, "digby_image")
 
         # Code cribbed from the SaveImage node of core ComfyUI
         full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, temp_path, images[0].shape[1], images[0].shape[0])
@@ -345,8 +345,8 @@ class DigbyLoopRetrieveImages:
     CATEGORY = "DigbyWan/loop"
 
 # Cribbed from KJNodes Load Images from Folder
-    def loop_variables_retrieve_images(self, loop_variables, label, delete_temp_files):       
-        folder_path = os.path.join(loop_variables["temp_dir"], label)
+    def loop_variables_retrieve_images(self, loop_variables, image_set_label, delete_temp_files):       
+        folder_path = os.path.join(loop_variables["temp_dir"], image_set_label)
         if not os.path.isdir(folder_path):
             raise FileNotFoundError(f"Folder '{folder_path}' cannot be found.")
         
