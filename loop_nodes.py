@@ -8,6 +8,7 @@ import tempfile
 import os
 import folder_paths
 import shutil
+import re
 
 from PIL import Image, ImageOps, ImageSequence
 import numpy as np
@@ -134,7 +135,7 @@ class DigbyLoopClose:
         loop_open_node = dynprompt.get_node(loop_open[0])
         assert loop_open_node["class_type"] in {"DigbyLoopOpen"}, "Must be linked to a 'Digby Loop Open' Node"
 
-        print(f"Iteration {loop_index+1} of {max_loops}")
+        print(f"Completed loop iteration {loop_index+1} of {max_loops}")
         
         # 检查是否继续循环  Check whether to continue the loop.
         if loop_index >= max_loops - 1:
@@ -225,6 +226,7 @@ class DigbyLoopVariablesInit:
             },
             "optional": {
                 "images": ("IMAGE",),
+                "latent": ("LATENT",),
             }
         }
         
@@ -236,12 +238,13 @@ class DigbyLoopVariablesInit:
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_init(self, string_val, int_val=None, float_val=None, images=None, seed=0 ):
+    def loop_variables_init(self, string_val, int_val=None, float_val=None, images=None, latent=None, seed=0 ):
         loop_variables = {
             "string_val": string_val,
             "int_val" : int_val,
             "float_val": float_val,
             "images": images,
+            "latent": latent,
             "seed": seed,
             "temp_dir": None,
         }
@@ -256,6 +259,7 @@ class DigbyLoopVariables:
             },
             "optional":{
                 "images": ("IMAGE",),
+                "latent": ("LATENT",),
                 "string_val": ("STRING", {"forceInput": True}),
                 "int_val": ("INT",{"forceInput": True}),
                 "float_val": ("FLOAT",{"forceInput": True}),
@@ -263,18 +267,19 @@ class DigbyLoopVariables:
         }
         return inputs
 
-    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "IMAGE", "STRING", "INT", "FLOAT", )
-    RETURN_NAMES = ("loop_variables", "images", "string_val", "int_val", "float_val", )
+    RETURN_TYPES = ("DIGBY_LOOP_VARIABLES", "IMAGE", "LATENT", "STRING", "INT", "FLOAT", )
+    RETURN_NAMES = ("loop_variables", "images", "latent", "string_val", "int_val", "float_val", )
     FUNCTION = "loop_variables_set"
     CATEGORY = "DigbyWan/loop"
     OUTPUT_NODE = True
 
-    def loop_variables_set(self, loop_variables, string_val=None, int_val=None, float_val=None, images=None, ):
+    def loop_variables_set(self, loop_variables, string_val=None, int_val=None, float_val=None, images=None, latent=None, ):
         if images is not None: loop_variables["images"] = images
+        if latent is not None: loop_variables["latent"] = latent
         if string_val is not None: loop_variables["string_val"] = string_val
         if int_val is not None: loop_variables["int_val"] = int_val
         if float_val is not None: loop_variables["float_val"] = float_val
-        return([loop_variables, loop_variables["images"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], ])
+        return([loop_variables, loop_variables["images"], loop_variables["latent"], loop_variables["string_val"], loop_variables["int_val"], loop_variables["float_val"], ])
 
 class DigbyLoopStoreImages:
     def __init__(self):
@@ -396,3 +401,56 @@ class DigbyLoopRetrieveImages:
             for image2 in images[1:]:
                 image1 = torch.cat((image1, image2), dim=0)
             return (image1,)
+        
+class DigbyLoopPromptList:
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "index": ("INT", {"forceInput": True} ),
+                "prompt_list": ("STRING", {"multiline": True, "placeholder":"List of prompts seperated by 'delimiter' specified below.  Default delimiter is a newline '\\n'"}),
+                "delimiter": ("STRING", { "default": "", "placeholder": "Uses newline if blank"} ), 
+                "merge_consecutive_delimiters": ("BOOLEAN", {"default": True}),          
+            }
+        }
+        return inputs
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt_at_index",)
+    FUNCTION = "prompt_string_at_index"
+    CATEGORY = "DigbyWan/loop"
+
+    def prompt_string_at_index(self, index, prompt_list, delimiter, merge_consecutive_delimiters, ):
+        if (prompt_list is None): 
+            return("")
+
+        final_delimiter = delimiter
+        final_prompt_list = prompt_list
+
+        if ((delimiter is None) or (delimiter =="")):
+            final_delimiter = "\n"
+
+        if (merge_consecutive_delimiters):
+            final_prompt_list = re.sub(rf"{final_delimiter}+", final_delimiter, final_prompt_list)   
+
+        split_prompts = final_prompt_list.split(final_delimiter)
+        i = min(index, len(split_prompts) - 1)
+        return([split_prompts[i]])
+
+class DigbyLoopLastImage:
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "images": ("IMAGE", ),
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("last_image",)
+    FUNCTION = "get_last_image"
+    CATEGORY = "DigbyWan/loop"
+
+    def get_last_image(self, images):
+        return([images[-1:]])

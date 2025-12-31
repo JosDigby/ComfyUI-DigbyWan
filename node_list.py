@@ -5,8 +5,8 @@
 # 
 # 
 # 
-from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition, WanVACEVideoBridge
-from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages
+from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition, WanVACEVideoBridge, WanLatentExtend
+from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages, DigbyLoopPromptList, DigbyLoopLastImage
 from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSamplerBasic
 
 
@@ -18,6 +18,7 @@ NODE_CLASS_MAPPINGS = {
     "DigbyWanVACEVideoBridge":WanVACEVideoBridge,
 #    "ImageBatchLoopExtract":ImageBatchLoopExtract,
 #    "ImageBatchSplit":ImageBatchSplit,
+    "DigbyWanLatentExtend": WanLatentExtend,
 
     "DigbyLoopOpen": DigbyLoopOpen,
     "DigbyLoopClose": DigbyLoopClose,
@@ -25,6 +26,8 @@ NODE_CLASS_MAPPINGS = {
     "DigbyLoopVariables": DigbyLoopVariables,
     "DigbyLoopStoreImages": DigbyLoopStoreImages,
     "DigbyLoopRetrieveImages": DigbyLoopRetrieveImages,
+    "DigbyLoopPromptList": DigbyLoopPromptList,
+    "DigbyLoopLastImage": DigbyLoopLastImage,
 
     "DigbyWanMoeKSampler": WanMoeKSampler,
 #    "DigbyWanMoeKSamplerAdvanced": WanMoeKSamplerAdvanced,
@@ -40,13 +43,16 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyWanVACEVideoBridge": "Wan VACE Video Bridge",
 #    "ImageBatchLoopExtract" : "Image Batch Loop Extractor",
 #    "ImageBatchSplit": "Image Batch Split At",
-  
+    "DigbyWanLatentExtend": "Wan 2.2 Latent Extend",
+
     "DigbyLoopOpen": "Digby Loop Open",
     "DigbyLoopClose": "Digby Loop Close",
     "DigbyLoopVariablesInit": "Digby Loop Variable Initialize",
     "DigbyLoopVariables": "Digby Loop Variables",
     "DigbyLoopStoreImages": "Digby Loop Store Images",
     "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images",
+    "DigbyLoopPromptList": "Digby Loop Prompt List",
+    "DigbyLoopLastImage" : "Digby Loop Get Last Image from Batch",
 
     "DigbyWanMoeKSampler": "Digby MoE KSampler",
 #    "DigbyWanMoeKSamplerAdvanced": "Digby MoE KSampler (Advanced)",

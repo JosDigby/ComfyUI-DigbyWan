@@ -11,6 +11,7 @@ import numpy as np
 from typing import Tuple
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, io
+from comfy import model_management
 
 EXPERIMENTAL = True
 
@@ -329,4 +330,56 @@ class ImageBatchSplit:
         return(start_images, end_images)
                
  
+class WanLatentExtend:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "positive": ("CONDITIONING",),
+                "negative": ("CONDITIONING",),
+                "latent": ("LATENT",),
+                "length": ("INT", { "default": 81, "min": 1, "step": 4 }), 
+                "index": ("INT", { "default": -1, "min":-1, "max":99} ),
+            },
+        }
     
+    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "LATENT", )
+    RETURN_NAMES = ("positive", "negative", "latent", )
+
+    FUNCTION = "latent_extend"
+    CATEGORY = "DigbyWan"
+    DESCRIPTION = "Remove the last latent from a batch for a new latent of equal size.  Useful for extending videos using last frame"
+
+    def latent_extend(self, positive, negative, latent, length, index):
+        # An index value of 0 acts like a pass through 
+        if (index == 0):
+            return(positive, negative, latent)
+            
+        input_latent = latent["samples"].clone()
+
+        B, C, T, H, W = input_latent.shape
+        print(f"latent shape values = {input_latent.shape}")
+        empty_latent = torch.zeros([B, 16, ((length - 1) // 4) + 1, H, W], device=model_management.intermediate_device())
+
+        total_latents = (length - 1) // 4 + 1
+        device = input_latent.device
+        dtype = input_latent.dtype
+
+        motion_latent_max = 1
+        motion_latent_count = min(motion_latent_max, input_latent.shape[2])
+
+        padding_size = total_latents - motion_latent_count
+        image_cond_latent = input_latent[:, :, -motion_latent_count:]
+        padding = torch.zeros(1, C, padding_size, H, W, dtype=dtype, device=device)
+        padding = comfy.latent_formats.Wan21().process_out(padding)
+        image_cond_latent = torch.cat([image_cond_latent, padding], dim=2)
+
+        mask = torch.ones((1, 1, empty_latent.shape[2], H, W), device=device, dtype=dtype)
+        mask[:, :, :1] = 0.0
+
+        positive = node_helpers.conditioning_set_values(positive, {"concat_latent_image": image_cond_latent, "concat_mask": mask})
+        negative = node_helpers.conditioning_set_values(negative, {"concat_latent_image": image_cond_latent, "concat_mask": mask})
+
+        out_latent = {}
+        out_latent["samples"] = empty_latent
+        return (positive, negative, out_latent)
