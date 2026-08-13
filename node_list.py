@@ -1,15 +1,7 @@
-#
-#
-# 
-# 
-# 
-# 
-# 
 from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition, WanVACEVideoBridge, WanLatentExtend
 from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages, DigbyLoopPromptList, DigbyLoopLastImage, DigbyTemporalVariance
 from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSamplerBasic, H3MoeKSampler
-from .image_batching import DynamicInputNode
-
+from .ltx2_nodes import LTX2_AVLatent
 
 NODE_CLASS_MAPPINGS = {
     "DigbyWan22MiddleFrameToVideo":Wan22MiddleFrameToVideo,
@@ -34,8 +26,12 @@ NODE_CLASS_MAPPINGS = {
     "DigbyWanMoeKSampler": WanMoeKSampler,
 #    "DigbyWanMoeKSamplerAdvanced": WanMoeKSamplerAdvanced,
     "DigbyWanMoeKSamplerBasic": WanMoeKSamplerBasic,
-    "DigbyImageBatch": DynamicInputNode,
     "H3MoeKSampler": H3MoeKSampler,
+
+
+    "LTX2_AVLatent": LTX2_AVLatent,
+
+
 }
 
 
@@ -62,6 +58,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyWanMoeKSampler": "Digby MoE KSampler",
 #    "DigbyWanMoeKSamplerAdvanced": "Digby MoE KSampler (Advanced)",
     "DigbyWanMoeKSamplerBasic": "Digby MoE KSampler (Basic)",
-    "DigbyImageBatch": "Dynamic Input Node",
+
+    "LTX2_AVLatent": "LTX-2 Create AV Latent",
+
     "H3MoeKSampler" : "Digby MiniMax H3 Two Stage KSampler",
 }
