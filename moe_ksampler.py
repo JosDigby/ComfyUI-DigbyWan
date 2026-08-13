@@ -34,8 +34,11 @@ def wan_ksampler(model_high_noise, model_low_noise, seed, steps, cfgs, sampler_n
 
     # first, we get all sigmas - Disabled by Wayland 2025-11-24.  Incorrect sigmas for the WAN2.2 model
     sampling = model_high_noise.get_model_object("model_sampling")
-    #sigmas = comfy.samplers.calculate_sigmas(sampling,scheduler,steps)
-    sigmas = compute_sigmas(sigma_shift, steps) # Sigmas are a 1-D Tensor of floats, and can be assigned to run on a particular device, such as cuda:0
+    sigmas=None 
+    if (sigma_shift is not None):
+        sigmas = compute_sigmas(sigma_shift, steps) # Sigmas are a 1-D Tensor of floats, and can be assigned to run on a particular device, such as cuda:0
+    else:
+        sigmas = comfy.samplers.calculate_sigmas(sampling,scheduler,steps)
 
     # why are timesteps 0-1000?
     timesteps = [sampling.timestep(sigma)/1000 for sigma in sigmas.tolist()]
@@ -258,3 +261,46 @@ class WanMoeKSamplerBasic:
         model_low_noise = set_shift(model_low_noise, sigma_shift)
 
         return wan_ksampler(model_high_noise, model_low_noise, seed, steps, (cfg_high_noise, cfg_low_noise), sampler_name, scheduler, positive, negative, latent_image,boundary=boundary, denoise=denoise, high_steps=high_steps, sigma_shift=sigma_shift)
+
+
+class H3MoeKSampler:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "non_turbo_model": ("MODEL", {"tooltip": "The first expert of the model used for denoising the input latent."}),
+                "turbo_model": ("MODEL", {"tooltip": "The second expert of the model used for denoising the input latent."}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True, "tooltip": "The random seed used for creating the noise."}),
+                "non_turbo_steps": ("INT", {"default": 2, "min": 0, "max": 30, "tooltip": "The number of steps used in the denoising process."}),
+                "turbo_steps": ("INT", {"default":4, "min": 0, "max": 12, "step": 1, "tooltip": "Manually set the number of turbo steps."}),
+                "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {"tooltip": "The algorithm used when sampling, this can affect the quality, speed, and style of the generated output."}),
+                "scheduler": (comfy.samplers.KSampler.SCHEDULERS, {"tooltip": "The scheduler controls how noise is gradually removed to form the image."}),
+                "positive": ("CONDITIONING", {"tooltip": "The conditioning describing the attributes you want to include in the image."}),
+                "latent_image": ("LATENT", {"tooltip": "The latent image to denoise."}),
+            }
+        }
+
+    RETURN_TYPES = ("LATENT",)
+    OUTPUT_TOOLTIPS = ("The denoised latent.",)
+    FUNCTION = "sample"
+
+    CATEGORY = "sampling"
+    DESCRIPTION = "Uses the provided model, positive and negative conditioning to denoise the latent image."
+
+    def sample(self, non_turbo_model, turbo_model, seed, non_turbo_steps, turbo_steps, sampler_name, scheduler, positive, latent_image):
+        cfg = 1.0
+        denoise = 1.0
+
+        negative = []
+        for t in positive:
+            d = t[1].copy()
+            pooled_output = d.get("pooled_output", None)
+            if pooled_output is not None:
+                d["pooled_output"] = torch.zeros_like(pooled_output)
+            conditioning_lyrics = d.get("conditioning_lyrics", None)
+            if conditioning_lyrics is not None:
+                d["conditioning_lyrics"] = torch.zeros_like(conditioning_lyrics)
+            n = [torch.zeros_like(t[0]), d]
+            negative.append(n)
+
+        return wan_ksampler(non_turbo_model, turbo_model, seed, turbo_steps + non_turbo_steps, (cfg, cfg), sampler_name, scheduler, positive, negative, latent_image, denoise=denoise, high_steps=non_turbo_steps)

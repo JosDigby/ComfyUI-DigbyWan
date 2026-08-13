@@ -6,8 +6,9 @@
 # 
 # 
 from .nodes import Wan22MiddleFrameToVideo, WanVACEVideoSmooth, WanVACEVideoExtend, ImageBatchLoopExtract, ImageBatchSplit, Wan22SmoothVideoTransition, WanVACEVideoBridge, WanLatentExtend
-from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages, DigbyLoopPromptList, DigbyLoopLastImage
-from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSamplerBasic
+from .loop_nodes import DigbyLoopOpen, DigbyLoopClose, DigbyLoopVariablesInit, DigbyLoopVariables, DigbyLoopStoreImages,  DigbyLoopRetrieveImages, DigbyLoopPromptList, DigbyLoopLastImage, DigbyTemporalVariance
+from .moe_ksampler import WanMoeKSampler, WanMoeKSamplerAdvanced, WanMoeKSamplerBasic, H3MoeKSampler
+from .image_batching import DynamicInputNode
 
 
 NODE_CLASS_MAPPINGS = {
@@ -28,12 +29,15 @@ NODE_CLASS_MAPPINGS = {
     "DigbyLoopRetrieveImages": DigbyLoopRetrieveImages,
     "DigbyLoopPromptList": DigbyLoopPromptList,
     "DigbyLoopLastImage": DigbyLoopLastImage,
+    "DigbyTemporalVariance": DigbyTemporalVariance,
 
     "DigbyWanMoeKSampler": WanMoeKSampler,
 #    "DigbyWanMoeKSamplerAdvanced": WanMoeKSamplerAdvanced,
     "DigbyWanMoeKSamplerBasic": WanMoeKSamplerBasic,
-
+    "DigbyImageBatch": DynamicInputNode,
+    "H3MoeKSampler": H3MoeKSampler,
 }
+
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyWan22MiddleFrameToVideo": "Wan 2.2 Middle Frame To Video",
@@ -53,8 +57,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DigbyLoopRetrieveImages": "Digby Loop Retrieve Images",
     "DigbyLoopPromptList": "Digby Loop Prompt List",
     "DigbyLoopLastImage" : "Digby Loop Get Last Image from Batch",
+    "DigbyTemporalVariance": "DigbyTemporalVariance",
 
     "DigbyWanMoeKSampler": "Digby MoE KSampler",
 #    "DigbyWanMoeKSamplerAdvanced": "Digby MoE KSampler (Advanced)",
     "DigbyWanMoeKSamplerBasic": "Digby MoE KSampler (Basic)",
+    "DigbyImageBatch": "Dynamic Input Node",
+    "H3MoeKSampler" : "Digby MiniMax H3 Two Stage KSampler",
 }

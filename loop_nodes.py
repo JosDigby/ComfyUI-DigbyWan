@@ -454,3 +454,49 @@ class DigbyLoopLastImage:
 
     def get_last_image(self, images):
         return([images[-1:]])
+    
+
+class DigbyTemporalVariance:
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = {
+            "required": {
+                "images": ("IMAGE", ),
+                "grayscale": ("BOOLEAN", { "default": True}),
+                "normal_lo": ("FLOAT", { "default": 0.00, "min":0.00, "max":1.00, "step":0.01,  "display":"slider" }),
+                "normal_hi": ("FLOAT", { "default": 1.00, "min":0.00, "max":1.00, "step":0.01,  "display":"slider" }),
+                "use_threshold": ("BOOLEAN", { "default": True}),
+                "threshold": ("FLOAT", { "default": 0.50, "min":0.00, "max":1.00, "step":0.01,  "display":"slider" })
+            }
+        }
+        return inputs
+    
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("variance_image",)
+    FUNCTION = "compute_variance_image"
+    CATEGORY = "DigbyWan/loop"
+
+    def compute_variance_image(self, images, grayscale, normal_lo, normal_hi, use_threshold, threshold):
+        length, height, width, channels = images.shape
+        output_image = torch.ones((1, height, width, channels)) 
+        difference_image = torch.zeros((1, height, width, channels)) 
+        for i in range(0,length-1):
+            difference_image[0] = torch.abs(images[i] - images[i+1])
+            output_image = output_image - difference_image
+
+        gray_image = output_image.clone()
+        if (grayscale):
+            gray_image[:,:,:] = torch.amax(gray_image, dim=-1, keepdim=True)
+
+        gray_image = gray_image + (1 - gray_image.max())
+
+
+        normal_tensor = (1/(normal_hi - normal_lo)) * (gray_image - normal_lo)
+        normal_tensor = torch.clamp(normal_tensor, min=0.0, max=1.0)
+
+        if (use_threshold):
+            threshold_tensor = torch.where(normal_tensor > threshold, 1.0,0.0)
+            return([threshold_tensor])
+        else:
+            return([normal_tensor])
+
